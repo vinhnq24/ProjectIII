@@ -2,11 +2,16 @@ import logging
 import os
 import sys
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI
+# pyrefly: ignore [missing-import]
 from fastapi.staticfiles import StaticFiles
+# pyrefly: ignore [missing-import]
 from fastapi.templating import Jinja2Templates
+# pyrefly: ignore [missing-import]
 from fastapi.requests import Request
-from fastapi.responses import HTMLResponse
+# pyrefly: ignore [missing-import]
+from fastapi.responses import HTMLResponse 
 
 from config import HOST, PORT, LOG_PATH
 from database.db import init_db
@@ -35,7 +40,7 @@ logger = logging.getLogger(__name__)
 # =====================================================
 app = FastAPI(
     title="Air Quality AI",
-    description="ESP32 → FastAPI → SQLite → AI",
+    description="ESP32 -> FastAPI -> SQLite -> AI",
     version="1.0.0",
 )
 

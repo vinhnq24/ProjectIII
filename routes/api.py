@@ -17,6 +17,7 @@ from database.db import (
 )
 from ml.predict import run_all_predictions
 from ml.train import run_training
+from ml.evaluate import evaluate_forecast, evaluate_classifier
 
 router = APIRouter()
 
@@ -153,6 +154,24 @@ async def training_status():
         },
         "records": get_count(),
     }
+
+
+# =====================================================
+# GET /metrics
+# Đánh giá nhanh chất lượng model trên tập test theo thời gian
+# =====================================================
+@router.get("/metrics")
+async def metrics():
+    try:
+        forecast = evaluate_forecast()
+        classifier = evaluate_classifier()
+        return {
+            "status": "ok",
+            "forecast": forecast,
+            "classifier": classifier,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =====================================================

@@ -83,7 +83,7 @@ def fit_and_save_scaler(df: pd.DataFrame) -> StandardScaler:
     with open(SCALER_PATH, "wb") as f:
         pickle.dump((scaler, feature_cols), f)
 
-    print(f"[Preprocess] Scaler saved → {SCALER_PATH}")
+    print(f"[Preprocess] Scaler saved -> {SCALER_PATH}")
 
     return scaler, feature_cols
 

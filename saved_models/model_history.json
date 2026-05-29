@@ -1,0 +1,26 @@
+[
+    {
+        "timestamp": "2026-05-30 00:55:35",
+        "success": true,
+        "records_used": 964,
+        "forecast_mae": 0.6,
+        "anomalies_found": 49,
+        "classifier_accuracy": 0.9948
+    },
+    {
+        "timestamp": "2026-05-30 01:07:54",
+        "success": true,
+        "records_used": 981,
+        "forecast_mae": 0.67,
+        "anomalies_found": 49,
+        "classifier_accuracy": 0.9949
+    },
+    {
+        "timestamp": "2026-05-30 01:09:28",
+        "success": true,
+        "records_used": 1000,
+        "forecast_mae": 0.82,
+        "anomalies_found": 50,
+        "classifier_accuracy": 0.995
+    }
+]

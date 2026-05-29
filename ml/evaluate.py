@@ -17,6 +17,18 @@ from ml.preprocess import (
 )
 
 
+def _time_split_xy(X, y, test_size=0.2):
+    n = len(X)
+    if n < 2:
+        raise ValueError("Not enough samples to evaluate.")
+
+    n_test = max(1, int(n * test_size))
+    n_test = min(n_test, n - 1)
+    split_idx = n - n_test
+
+    return X[:split_idx], X[split_idx:], y[:split_idx], y[split_idx:]
+
+
 def evaluate_forecast():
     print("[Evaluate] Forecast model...")
 
@@ -39,15 +51,24 @@ def evaluate_forecast():
     X = df[feature_cols].values
     y = df["target"].values
 
-    y_pred = model.predict(X)
+    X_train, X_test, y_train, y_test = _time_split_xy(X, y)
+    y_pred = model.predict(X_test)
+    naive_pred = X_test[:, feature_cols.index("pm25")]
 
-    mae  = mean_absolute_error(y, y_pred)
-    rmse = np.sqrt(mean_squared_error(y, y_pred))
+    mae  = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    naive_mae = mean_absolute_error(y_test, naive_pred)
 
-    print(f"  MAE  : {mae:.2f} µg/m³")
-    print(f"  RMSE : {rmse:.2f} µg/m³")
+    print(f"  MAE (test)       : {mae:.2f} µg/m³")
+    print(f"  RMSE (test)      : {rmse:.2f} µg/m³")
+    print(f"  Naive MAE (test) : {naive_mae:.2f} µg/m³")
 
-    return {"mae": mae, "rmse": rmse}
+    return {
+        "mae": float(mae),
+        "rmse": float(rmse),
+        "naive_mae": float(naive_mae),
+        "n_test": int(len(y_test)),
+    }
 
 
 def evaluate_classifier():
@@ -65,21 +86,27 @@ def evaluate_classifier():
     df   = clean_data(df)
     df   = add_features(df)
 
-    labels   = make_classifier_labels(df)
-    X        = df[feature_cols].values
-    y        = labels.values
-    y_pred   = model.predict(X)
+    labels = make_classifier_labels(df)
+    X = df[feature_cols].values
+    y = labels.values
+    X_train, X_test, y_train, y_test = _time_split_xy(X, y)
+    y_pred = model.predict(X_test)
 
-    accuracy = accuracy_score(y, y_pred)
-
-    print(f"  Accuracy : {accuracy:.2%}")
-    print(classification_report(
-        y, y_pred,
-        target_names=["Good", "Normal", "Bad", "Danger"],
+    accuracy = accuracy_score(y_test, y_pred)
+    class_map = {0: "Good", 1: "Normal", 2: "Bad", 3: "Danger"}
+    labels_present = sorted(set(y_test.tolist()) | set(y_pred.tolist()))
+    target_names = [class_map.get(int(lbl), str(lbl)) for lbl in labels_present]
+    report = classification_report(
+        y_test, y_pred,
+        labels=labels_present,
+        target_names=target_names,
         zero_division=0
-    ))
+    )
 
-    return {"accuracy": accuracy}
+    print(f"  Accuracy (test) : {accuracy:.2%}")
+    print(report)
+
+    return {"accuracy": float(accuracy), "report": report, "n_test": int(len(y_test))}
 
 
 if __name__ == "__main__":

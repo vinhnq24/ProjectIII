@@ -6,7 +6,6 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, IsolationForest
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, accuracy_score
 
 from config import (
@@ -21,6 +20,82 @@ from ml.preprocess import (
 
 
 os.makedirs(SAVED_MODELS_DIR, exist_ok=True)
+
+
+def save_model_with_backup(model, feature_cols, primary_path):
+    """
+    Lưu model vào path chính và đồng thời tạo một bản sao lưu (archive) có đánh dấu thời gian.
+    """
+    import shutil
+    from datetime import datetime
+
+    # 1. Lưu vào path chính
+    with open(primary_path, "wb") as f:
+        pickle.dump((model, feature_cols), f)
+
+    # 2. Tạo bản sao lưu (archive)
+    try:
+        archive_dir = os.path.join(os.path.dirname(primary_path), "archive")
+        os.makedirs(archive_dir, exist_ok=True)
+
+        base_name = os.path.basename(primary_path)
+        name, ext = os.path.splitext(base_name)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        archive_path = os.path.join(archive_dir, f"{name}_v{timestamp}{ext}")
+
+        shutil.copy2(primary_path, archive_path)
+        print(f"[Backup] Saved versioned backup to {archive_path}")
+        return archive_path
+    except Exception as e:
+        print(f"[Backup] Lỗi sao lưu model: {e}")
+        return None
+
+
+def log_training_history(metrics: dict):
+    """
+    Ghi nhận lại lịch sử huấn luyện chi tiết vào file model_history.json
+    """
+    import json
+    from datetime import datetime
+
+    history_path = os.path.join(SAVED_MODELS_DIR, "model_history.json")
+
+    record = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        **metrics
+    }
+
+    try:
+        if os.path.exists(history_path):
+            with open(history_path, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        else:
+            history = []
+
+        history.append(record)
+
+        with open(history_path, "w", encoding="utf-8") as f:
+            json.dump(history, f, indent=4, ensure_ascii=False)
+
+        print(f"[History] Training metrics logged to {history_path}")
+    except Exception as e:
+        print(f"[History] Lỗi ghi lịch sử training: {e}")
+
+
+
+def _time_split_xy(X, y, test_size):
+    """
+    Split theo thời gian: train = quá khứ, test = tương lai.
+    """
+    n = len(X)
+    if n < 2:
+        raise ValueError("Not enough samples to split train/test.")
+
+    n_test = max(1, int(n * test_size))
+    n_test = min(n_test, n - 1)
+    split_idx = n - n_test
+
+    return X[:split_idx], X[split_idx:], y[:split_idx], y[split_idx:]
 
 
 # =====================================================
@@ -42,10 +117,7 @@ def train_forecast(df):
     X = df_train[feature_cols].values
     y = df_train["target"].values
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE,
-        random_state=RANDOM_STATE
-    )
+    X_train, X_test, y_train, y_test = _time_split_xy(X, y, TEST_SIZE)
 
     model = RandomForestRegressor(
         n_estimators=100,
@@ -57,13 +129,13 @@ def train_forecast(df):
 
     y_pred = model.predict(X_test)
     mae    = mean_absolute_error(y_test, y_pred)
+    naive_pred = X_test[:, feature_cols.index("pm25")]
+    naive_mae = mean_absolute_error(y_test, naive_pred)
 
-    print(f"[Train] Forecast MAE: {mae:.2f} µg/m³")
+    print(f"[Train] Forecast MAE (test): {mae:.2f} µg/m³")
+    print(f"[Train] Naive MAE (test):    {naive_mae:.2f} µg/m³")
 
-    with open(MODEL_FORECAST, "wb") as f:
-        pickle.dump((model, feature_cols), f)
-
-    print(f"[Train] Forecast model saved → {MODEL_FORECAST}")
+    save_model_with_backup(model, feature_cols, MODEL_FORECAST)
 
     return mae
 
@@ -94,10 +166,7 @@ def train_anomaly(df):
 
     print(f"[Train] Anomalies found in training data: {n_anom}/{len(X)}")
 
-    with open(MODEL_ANOMALY, "wb") as f:
-        pickle.dump((model, feature_cols), f)
-
-    print(f"[Train] Anomaly model saved → {MODEL_ANOMALY}")
+    save_model_with_backup(model, feature_cols, MODEL_ANOMALY)
 
     return n_anom
 
@@ -119,11 +188,7 @@ def train_classifier(df):
     X = df_train[feature_cols].values
     y = df_train["label"].values
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=TEST_SIZE,
-        random_state=RANDOM_STATE,
-        stratify=y if len(np.unique(y)) > 1 else None
-    )
+    X_train, X_test, y_train, y_test = _time_split_xy(X, y, TEST_SIZE)
 
     model = RandomForestClassifier(
         n_estimators=100,
@@ -136,12 +201,9 @@ def train_classifier(df):
     y_pred   = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
 
-    print(f"[Train] Classifier accuracy: {accuracy:.2%}")
+    print(f"[Train] Classifier accuracy (test): {accuracy:.2%}")
 
-    with open(MODEL_CLASSIFIER, "wb") as f:
-        pickle.dump((model, feature_cols), f)
-
-    print(f"[Train] Classifier model saved → {MODEL_CLASSIFIER}")
+    save_model_with_backup(model, feature_cols, MODEL_CLASSIFIER)
 
     return accuracy
 
@@ -183,6 +245,8 @@ def run_training():
         "anomalies_found":   int(n_anom),
         "classifier_accuracy": round(accuracy, 4),
     }
+
+    log_training_history(result)
 
     print("\n" + "=" * 50)
     print("[Train] Done!")

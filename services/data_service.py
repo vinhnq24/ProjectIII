@@ -45,6 +45,18 @@ def process_incoming_data(pm25: float, pm10: float,
     # 4. Đếm tổng records
     count = get_count()
 
+    # 5. Tự động cảnh báo nếu phát hiện bất thường
+    if anomaly.get("is_anomaly"):
+        print(f"\n[ALERT - ANOMALY] Phát hiện chỉ số khí hậu bất thường thực tế! PM2.5: {pm25}, PM10: {pm10}, Temp: {temp}, Hum: {hum}, MQ135: {mq}")
+
+    # 6. Tự động train lại mô hình khi số lượng bản ghi đạt mỗi mốc 1000 dòng
+    if count >= MIN_RECORDS_TO_TRAIN and count % 1000 == 0:
+        import threading
+        from ml.train import run_training
+
+        print(f"\n[Auto-Retrain] Tổng số bản ghi đạt {count}. Bắt đầu huấn luyện lại các mô hình AI trong luồng ngầm...")
+        threading.Thread(target=run_training, daemon=True).start()
+
     return {
         "timestamp":   timestamp,
         "saved":       True,
