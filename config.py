@@ -47,6 +47,17 @@ THRESHOLDS = {
 }
 
 # =====================================================
+# MQTT
+# =====================================================
+MQTT_BROKER    = os.environ.get("MQTT_BROKER",    "22f19246dfe745fd9bbc373e63c12f9f.s1.eu.hivemq.cloud")
+MQTT_PORT      = int(os.environ.get("MQTT_PORT",  8883))
+MQTT_TOPIC     = os.environ.get("MQTT_TOPIC",     "airquality/data")
+MQTT_CLIENT_ID = os.environ.get("MQTT_CLIENT_ID", "air-quality-ai-server")
+MQTT_USERNAME  = os.environ.get("MQTT_USERNAME",  "ngoquangvinh")
+MQTT_PASSWORD  = os.environ.get("MQTT_PASSWORD",  "Vinh4953")
+MQTT_TLS       = os.environ.get("MQTT_TLS",       "true").lower() in ("1", "true", "yes", "on")
+
+# =====================================================
 # LOGGING
 # =====================================================
 LOG_PATH = os.path.join(BASE_DIR, "logs", "app.log")

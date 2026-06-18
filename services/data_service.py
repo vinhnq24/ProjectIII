@@ -1,3 +1,4 @@
+import logging
 import sys
 import os
 
@@ -10,6 +11,8 @@ from database.db import (
 from ml.predict import run_all_predictions
 from config import MIN_RECORDS_TO_TRAIN
 
+logger = logging.getLogger(__name__)
+
 
 # =====================================================
 # NHẬN DỮ LIỆU TỪ ESP32
@@ -17,51 +20,61 @@ from config import MIN_RECORDS_TO_TRAIN
 def process_incoming_data(pm25: float, pm10: float,
                            temp: float, hum: float,
                            mq: float) -> dict:
-    # 1. Lưu vào database
+    # 1. Luôn lưu sensor trước — không phụ thuộc AI
     timestamp = insert_sensor_data(pm25, pm10, temp, hum, mq)
+    count = get_count()
+    logger.info(
+        "Sensor data saved to SQLite: timestamp=%s pm25=%s pm10=%s temp=%s hum=%s mq=%s count=%s",
+        timestamp, pm25, pm10, temp, hum, mq, count,
+    )
 
-    # 2. Chạy AI prediction
     data = {
         "pm25": pm25, "pm10": pm10,
         "temp": temp, "hum":  hum,
         "mq":   mq,
     }
 
-    predictions = run_all_predictions(data)
+    predictions = None
+    try:
+        # 2. Chạy AI prediction (lỗi ở đây không được chặn lưu sensor)
+        predictions = run_all_predictions(data)
 
-    # 3. Lưu prediction vào database
-    forecast  = predictions["forecast"]
-    anomaly   = predictions["anomaly"]
-    classify  = predictions["classify"]
+        forecast = predictions["forecast"]
+        anomaly  = predictions["anomaly"]
+        classify = predictions["classify"]
 
-    insert_prediction(
-        pm25_input    = pm25,
-        pm25_forecast = forecast.get("pm25_next"),
-        air_class     = classify.get("air_class"),
-        anomaly       = 1 if anomaly.get("is_anomaly") else 0,
-        anomaly_score = anomaly.get("score"),
-    )
+        insert_prediction(
+            pm25_input    = pm25,
+            pm25_forecast = forecast.get("pm25_next"),
+            air_class     = classify.get("air_class"),
+            anomaly       = 1 if anomaly.get("is_anomaly") else 0,
+            anomaly_score = anomaly.get("score"),
+        )
 
-    # 4. Đếm tổng records
-    count = get_count()
+        if anomaly.get("is_anomaly"):
+            logger.warning(
+                "[ALERT - ANOMALY] PM2.5=%s PM10=%s Temp=%s Hum=%s MQ135=%s",
+                pm25, pm10, temp, hum, mq,
+            )
 
-    # 5. Tự động cảnh báo nếu phát hiện bất thường
-    if anomaly.get("is_anomaly"):
-        print(f"\n[ALERT - ANOMALY] Phát hiện chỉ số khí hậu bất thường thực tế! PM2.5: {pm25}, PM10: {pm10}, Temp: {temp}, Hum: {hum}, MQ135: {mq}")
+        if count >= MIN_RECORDS_TO_TRAIN and count % 1000 == 0:
+            import threading
+            from ml.train import run_training
 
-    # 6. Tự động train lại mô hình khi số lượng bản ghi đạt mỗi mốc 1000 dòng
-    if count >= MIN_RECORDS_TO_TRAIN and count % 1000 == 0:
-        import threading
-        from ml.train import run_training
+            logger.info(
+                "[Auto-Retrain] %s records reached — retraining models in background",
+                count,
+            )
+            threading.Thread(target=run_training, daemon=True).start()
 
-        print(f"\n[Auto-Retrain] Tổng số bản ghi đạt {count}. Bắt đầu huấn luyện lại các mô hình AI trong luồng ngầm...")
-        threading.Thread(target=run_training, daemon=True).start()
+    except Exception as e:
+        logger.exception("AI prediction failed after sensor save: %s", e)
 
     return {
-        "timestamp":   timestamp,
-        "saved":       True,
-        "count":       count,
-        "predictions": predictions,
+        "timestamp":      timestamp,
+        "saved":          True,
+        "count":          count,
+        "predictions":    predictions,
         "ready_to_train": count >= MIN_RECORDS_TO_TRAIN,
     }
 
@@ -74,17 +87,21 @@ def get_dashboard_data(limit: int = 50) -> dict:
     count = get_count()
 
     if not rows:
-        return {"rows": [], "count": 0, "summary": None}
+        return {"rows": [], "count": 0, "latest": None, "predictions": None}
 
     latest = rows[0]
 
-    predictions = run_all_predictions({
-        "pm25": latest["pm25"],
-        "pm10": latest["pm10"],
-        "temp": latest["temp"],
-        "hum":  latest["hum"],
-        "mq":   latest["mq"],
-    })
+    predictions = None
+    try:
+        predictions = run_all_predictions({
+            "pm25": latest["pm25"],
+            "pm10": latest["pm10"],
+            "temp": latest["temp"],
+            "hum":  latest["hum"],
+            "mq":   latest["mq"],
+        })
+    except Exception as e:
+        logger.exception("Dashboard AI prediction failed; returning sensor data only: %s", e)
 
     return {
         "rows":        rows,
