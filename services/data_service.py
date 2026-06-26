@@ -19,19 +19,24 @@ logger = logging.getLogger(__name__)
 # =====================================================
 def process_incoming_data(pm25: float, pm10: float,
                            temp: float, hum: float,
-                           mq: float) -> dict:
+                           mq: float,
+                           gps_fix: int = 0,
+                           lat: float = 0.0,
+                           lng: float = 0.0) -> dict:
     # 1. Luôn lưu sensor trước — không phụ thuộc AI
-    timestamp = insert_sensor_data(pm25, pm10, temp, hum, mq)
+    timestamp = insert_sensor_data(pm25, pm10, temp, hum, mq,
+                                   gps_fix=gps_fix, lat=lat, lng=lng)
     count = get_count()
     logger.info(
-        "Sensor data saved to SQLite: timestamp=%s pm25=%s pm10=%s temp=%s hum=%s mq=%s count=%s",
-        timestamp, pm25, pm10, temp, hum, mq, count,
+        "Sensor data saved to SQLite: timestamp=%s pm25=%s pm10=%s temp=%s hum=%s mq=%s gps_fix=%s lat=%s lng=%s count=%s",
+        timestamp, pm25, pm10, temp, hum, mq, gps_fix, lat, lng, count,
     )
 
     data = {
         "pm25": pm25, "pm10": pm10,
         "temp": temp, "hum":  hum,
         "mq":   mq,
+        "gps_fix": gps_fix, "lat": lat, "lng": lng,
     }
 
     predictions = None
@@ -103,11 +108,14 @@ def get_dashboard_data(limit: int = 50) -> dict:
     except Exception as e:
         logger.exception("Dashboard AI prediction failed; returning sensor data only: %s", e)
 
+    from config import STATION_LAT, STATION_LNG
     return {
         "rows":        rows,
         "count":       count,
         "latest":      latest,
         "predictions": predictions,
+        "station_lat": STATION_LAT,
+        "station_lng": STATION_LNG,
     }
 
 

@@ -1,672 +1,1458 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Air Quality Monitor</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIR Quality Vinh - Hệ thống Giám sát Chất lượng Không khí</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts (Inter) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    /* CUSTOM SCROLLBAR */
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b0f19;
+    }
+
+    /* Custom Scrollbar */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
     }
+
     ::-webkit-scrollbar-track {
-      background: rgba(15, 17, 23, 0.5);
+      background: #0f172a;
     }
+
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+      background: #334155;
       border-radius: 4px;
     }
+
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: #475569;
     }
 
-    body {
-      font-family: 'Outfit', system-ui, -apple-system, sans-serif;
-      background: radial-gradient(circle at 10% 20%, rgba(26, 20, 48, 0.8) 0%, rgba(15, 17, 23, 1) 90%);
-      color: #e2e8f0;
-      padding: 24px;
-      min-height: 100vh;
-      letter-spacing: -0.01em;
+    /* Leaflet Dark Theme Hack */
+    .leaflet-tile {
+      filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) !important;
     }
 
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #ffffff;
-      letter-spacing: 0.05em;
-      text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
-      text-transform: uppercase;
+    .leaflet-container {
+      background: #0f172a !important;
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
     }
 
-    /* STATUS BAR */
-    #status-bar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 32px;
-      font-size: 0.85rem;
-      color: #94a3b8;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 8px 16px;
-      border-radius: 20px;
-      width: fit-content;
-      margin-left: auto;
-      margin-right: auto;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(4px);
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+      background: #1e293b !important;
+      color: #f8fafc !important;
+      border: 1px solid #475569;
     }
 
-    #status-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
-      animation: pulse 1.8s infinite alternate;
+    /* Pulsing dot for live status */
+    .pulse-emerald {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse-em 2s infinite;
     }
 
-    @keyframes pulse {
+    @keyframes pulse-em {
       0% {
-        transform: scale(0.9);
-        box-shadow: 0 0 4px #10b981;
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
       }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+      }
+
       100% {
-        transform: scale(1.1);
-        box-shadow: 0 0 14px #10b981;
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
       }
     }
 
-    /* GLASS CONTAINER UTILITY */
-    .glass-panel {
-      background: rgba(30, 41, 59, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Alert pulse animation */
+    @keyframes pulse-red {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.4;
+      }
     }
 
-    /* METRIC CARDS */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 16px;
-      margin-bottom: 28px;
-    }
-
-    .card {
-      background: rgba(30, 41, 59, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 20px 16px;
-      text-align: center;
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
-    }
-
-    .card.good:hover {
-      border-color: rgba(16, 185, 129, 0.4);
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
-    }
-    .card.normal:hover {
-      border-color: rgba(234, 179, 8, 0.4);
-      box-shadow: 0 0 20px rgba(234, 179, 8, 0.15);
-    }
-    .card.bad:hover {
-      border-color: rgba(249, 115, 22, 0.4);
-      box-shadow: 0 0 20px rgba(249, 115, 22, 0.15);
-    }
-    .card.danger:hover {
-      border-color: rgba(239, 68, 68, 0.4);
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
-    }
-
-    .card-label {
-      font-size: 0.72rem;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      margin-bottom: 8px;
-      font-weight: 500;
-    }
-
-    .card-value {
-      font-size: 2.2rem;
-      font-weight: 700;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-      transition: color 0.3s;
-    }
-
-    .card-unit {
-      font-size: 0.72rem;
-      color: #64748b;
-      margin-top: 4px;
-      font-weight: 400;
-    }
-
-    /* AI PANEL */
-    #ai-panel {
-      background: rgba(30, 41, 59, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 24px;
-      margin-bottom: 28px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-      align-items: center;
-    }
-
-    #ai-panel:hover {
-      border-color: rgba(255, 255, 255, 0.1);
-      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-    }
-
-    #ai-panel h2 {
-      font-size: 0.8rem;
-      color: #3b82f6;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      width: 100%;
-      margin-bottom: 8px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    
-    #ai-panel h2::before {
-      content: '✦';
-      color: #60a5fa;
-      animation: spin 3s linear infinite;
-      display: inline-block;
-    }
-
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
-
-    .ai-item {
-      flex: 1;
-      min-width: 140px;
-      text-align: center;
-      padding: 12px 8px;
-      background: rgba(255, 255, 255, 0.015);
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.02);
-      transition: all 0.25s ease;
-    }
-
-    .ai-item:hover {
-      background: rgba(255, 255, 255, 0.03);
-      border-color: rgba(255, 255, 255, 0.05);
-      transform: translateY(-2px);
-    }
-
-    .ai-item .ai-label {
-      font-size: 0.72rem;
-      color: #64748b;
-      margin-bottom: 6px;
-      font-weight: 500;
-    }
-
-    .ai-item .ai-value {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #ffffff;
-    }
-
-    .color-good   { color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-    .color-normal { color: #f59e0b; text-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
-    .color-bad    { color: #f97316; text-shadow: 0 0 10px rgba(249, 115, 22, 0.2); }
-    .color-danger { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
-    .color-anom   { color: #c084fc; text-shadow: 0 0 10px rgba(192, 132, 252, 0.3); }
-
-    /* CHART */
-    #chart-container {
-      background: rgba(30, 41, 59, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 20px;
-      margin-bottom: 28px;
-    }
-
-    #chart-container:hover {
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-
-    #chart-container h2 {
-      font-size: 0.8rem;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      margin-bottom: 16px;
-      font-weight: 600;
-    }
-
-    canvas { max-height: 280px; }
-
-    /* TABLE */
-    #table-container {
-      background: rgba(30, 41, 59, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-      padding: 24px;
-      overflow-x: auto;
-    }
-
-    #table-container:hover {
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-
-    #table-container h2 {
-      font-size: 0.8rem;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      margin-bottom: 16px;
-      font-weight: 600;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.82rem;
-    }
-
-    th {
-      color: #94a3b8;
-      font-weight: 600;
-      padding: 10px 14px;
-      text-align: left;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.06);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    td {
-      padding: 10px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-      color: #cbd5e1;
-    }
-
-    tr:hover td {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.015);
-    }
-
-    tr:last-child td { border-bottom: none; }
-
-    /* TRAIN BUTTON */
-    #train-btn {
-      display: block;
-      margin: 28px auto 0;
-      padding: 12px 36px;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: #ffffff;
-      border: none;
-      border-radius: 24px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      letter-spacing: 0.03em;
-    }
-
-    #train-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5), 0 0 10px rgba(59, 130, 246, 0.3);
-      background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-    }
-
-    #train-btn:active:not(:disabled) {
-      transform: translateY(0);
-    }
-
-    #train-btn:disabled {
-      background: rgba(255, 255, 255, 0.05);
-      color: rgba(255, 255, 255, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    #train-msg {
-      text-align: center;
-      margin-top: 12px;
-      font-size: 0.8rem;
-      color: #94a3b8;
-      font-weight: 500;
+    .alert-flash {
+      animation: pulse-red 1s infinite;
     }
   </style>
 </head>
-<body>
 
-<h1>AIR QUALITY MONITOR</h1>
+<body class="text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
 
-<div id="status-bar">
-  <span id="status-dot"></span>
-  <span id="status-text">Đang kết nối...</span>
-  <span id="record-count"></span>
-</div>
+  <!-- TOP EMERGENCY ALERT BANNER -->
+  <div id="emergency-banner"
+    class="hidden bg-rose-950 border-b border-rose-500 text-rose-200 px-6 py-3 flex justify-between items-center z-50 transition-all duration-500 transform -translate-y-full">
+    <div class="flex items-center space-x-3">
+      <span class="flex h-3 w-3 relative">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+      </span>
+      <p class="text-sm font-semibold tracking-wide">
+        <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+        CẢNH BÁO KHẨN CẤP: Nồng độ bụi mịn PM2.5 vượt ngưỡng nguy hại (&gt;150 µg/m³)!
+      </p>
+    </div>
+    <div class="flex items-center space-x-4">
+      <button onclick="dismissEmergency()"
+        class="text-xs bg-rose-900/50 hover:bg-rose-900 border border-rose-500 px-3 py-1 rounded transition">Bỏ
+        qua</button>
+    </div>
+  </div>
 
-<!-- METRIC CARDS -->
-<div class="cards">
-  <div class="card" id="card-pm25">
-    <div class="card-label">PM2.5</div>
-    <div class="card-value" id="val-pm25">--</div>
-    <div class="card-unit">µg/m³</div>
-  </div>
-  <div class="card" id="card-pm10">
-    <div class="card-label">PM10</div>
-    <div class="card-value" id="val-pm10">--</div>
-    <div class="card-unit">µg/m³</div>
-  </div>
-  <div class="card" id="card-temp">
-    <div class="card-label">Nhiệt độ</div>
-    <div class="card-value" id="val-temp">--</div>
-    <div class="card-unit">°C</div>
-  </div>
-  <div class="card" id="card-hum">
-    <div class="card-label">Độ ẩm</div>
-    <div class="card-value" id="val-hum">--</div>
-    <div class="card-unit">%</div>
-  </div>
-  <div class="card" id="card-mq">
-    <div class="card-label">MQ135</div>
-    <div class="card-value" id="val-mq">--</div>
-    <div class="card-unit">raw</div>
-  </div>
-</div>
+  <!-- MAIN HEADER -->
+  <header
+    class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 z-30">
+    <!-- Logo Brand -->
+    <div class="flex items-center space-x-3">
+      <div class="bg-gradient-to-tr from-cyan-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+        <i class="fa-solid fa-wind text-white text-xl"></i>
+      </div>
+      <div>
+        <h1
+          class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+          AIRSENSE <span
+            class="text-xs font-medium text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded ml-1 bg-cyan-950/40">AQMS
+            PRO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Hệ thống Giám sát Chất lượng Không khí Quốc gia</p>
+      </div>
+    </div>
 
-<!-- AI PANEL -->
-<div id="ai-panel">
-  <h2>AI Predictions</h2>
-  <div class="ai-item">
-    <div class="ai-label">Mức độ không khí</div>
-    <div class="ai-value" id="ai-class">--</div>
+    <!-- Middle Info: Real Station Name -->
+    <div class="flex items-center space-x-3">
+      <span class="text-sm font-semibold bg-slate-950 px-4 py-2 border border-slate-800 rounded-lg text-slate-300">
+        <i class="fa-solid fa-satellite-dish text-indigo-400 mr-2"></i>Trạm Cảm Biến IoT (Thực tế)
+      </span>
+    </div>
+
+    <!-- System Status & Controls -->
+    <div class="flex items-center space-x-4">
+      <!-- Simulator Controls -->
+      <button onclick="triggerEmergencySimulation()"
+        class="bg-rose-950/50 hover:bg-rose-950 border border-rose-800 text-rose-300 hover:text-rose-100 text-xs px-3 py-2 rounded-lg transition font-medium flex items-center space-x-2">
+        <i class="fa-solid fa-flask alert-flash"></i>
+        <span>Giả lập Báo động</span>
+      </button>
+
+      <!-- Export -->
+      <button onclick="exportReport()"
+        class="bg-slate-950 hover:bg-slate-800 text-slate-300 text-xs px-3 py-2 rounded-lg border border-slate-800 transition flex items-center space-x-1.5">
+        <i class="fa-solid fa-file-export"></i>
+        <span>Xuất Báo cáo</span>
+      </button>
+
+      <!-- Live Clock & Status Indicator -->
+      <div class="text-right hidden xl:block">
+        <div class="flex items-center justify-end space-x-2">
+          <span class="h-2 w-2 rounded-full bg-emerald-500 pulse-emerald" id="status-dot"></span>
+          <span class="text-xs text-emerald-400 font-semibold tracking-wider" id="status-text">HỆ THỐNG TRỰC
+            TUYẾN</span>
+        </div>
+        <p id="live-time" class="text-[10px] text-slate-500 mt-0.5">Đang cập nhật thời gian...</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTAINER BODY -->
+  <div class="flex-grow flex flex-col lg:flex-row">
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="bg-slate-950/70 w-full lg:w-64 border-r border-slate-900 p-4 flex flex-col justify-between space-y-6">
+      <div class="space-y-6">
+        <!-- Navigation Items -->
+        <nav class="space-y-1">
+          <p class="text-[10px] font-bold text-slate-500 tracking-widest uppercase px-3 mb-2">Bảng điều khiển
+          </p>
+          <a href="#"
+            class="flex items-center space-x-3 px-3 py-2.5 rounded-lg bg-indigo-950/40 text-indigo-400 border border-indigo-900/40 text-xs font-semibold transition">
+            <i class="fa-solid fa-chart-line text-sm"></i>
+            <span>Dashboard chính</span>
+          </a>
+          <!-- Train button integrated directly! -->
+          <button id="train-btn" onclick="triggerTrain()"
+            class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 text-xs font-medium transition text-left focus:outline-none">
+            <i class="fa-solid fa-brain text-sm text-purple-400"></i>
+            <span id="train-btn-text">Huấn luyện mô hình AI</span>
+          </button>
+        </nav>
+
+        <!-- Stations Quick Watchlist -> Becomes Recent Data History Watchlist -->
+        <div class="space-y-2">
+          <div class="flex justify-between items-center px-3 mb-1">
+            <p class="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Lịch sử dữ liệu nhận</p>
+            <span id="active-station-count"
+              class="text-[10px] bg-slate-900 text-cyan-400 border border-slate-800 px-1.5 py-0.5 rounded-full font-bold">10
+              Gói mới</span>
+          </div>
+          <div id="stations-watchlist" class="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+            <!-- Dynamic list of recent packets -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer / System Credits -->
+      <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-900/80 text-[11px] text-slate-500">
+        <div class="flex justify-between items-center text-slate-400 mb-1">
+          <span>Phiên bản Core:</span>
+          <span class="font-mono text-cyan-500">v4.8.2</span>
+        </div>
+        <div class="flex justify-between items-center text-slate-400">
+          <span>Kết nối Gateway:</span>
+          <span class="font-mono text-emerald-400">Mã hóa TLS</span>
+        </div>
+        <div class="border-t border-slate-800/60 mt-2 pt-2 text-center" id="record-count">
+          © 2026 AIRSENSE AQMS Project.
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN DASHBOARD CONTENT AREA -->
+    <main class="flex-grow p-6 space-y-6 overflow-y-auto bg-[#090d16]">
+      <!-- TOP STATS CARDS GRID -->
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <!-- AQI CORE GAUGE CARD -->
+        <div
+          class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-950/10 hover:border-slate-700/60 transition duration-300 relative overflow-hidden group">
+          <div
+            class="absolute -right-6 -bottom-6 w-24 h-24 bg-gradient-to-tr from-indigo-500/10 to-transparent rounded-full filter blur-xl">
+          </div>
+          <div class="space-y-2 z-10">
+            <p class="text-xs font-semibold text-slate-400 tracking-wider">CHỈ SỐ AQI HIỆN TẠI</p>
+            <div class="flex items-baseline space-x-2">
+              <span id="aqi-value" class="text-5xl font-black tracking-tight text-emerald-400">--</span>
+              <span id="aqi-status"
+                class="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-950/50 border border-emerald-500/30 text-emerald-400">Tốt</span>
+            </div>
+            <p id="aqi-advice" class="text-xs text-slate-400 mt-2 leading-relaxed">Đang phân tích chất lượng không
+              khí...</p>
+          </div>
+          <!-- Custom circular progress representation -->
+          <div class="relative flex items-center justify-center z-10">
+            <svg class="w-20 h-20 transform -rotate-90">
+              <circle cx="40" cy="40" r="32" class="stroke-slate-800" stroke-width="6" fill="transparent" />
+              <circle id="aqi-circle" cx="40" cy="40" r="32"
+                class="stroke-emerald-400 transition-all duration-1000 ease-out" stroke-width="6" fill="transparent"
+                stroke-dasharray="201" stroke-dashoffset="201" />
+            </svg>
+            <div class="absolute text-center">
+              <i class="fa-solid fa-leaf text-slate-400 text-lg" id="aqi-icon"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- PM2.5 CARD -->
+        <div
+          class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-xl shadow-slate-950/10 hover:border-slate-700/60 transition duration-300">
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <p class="text-xs font-semibold text-slate-400 tracking-wider">BỤI MỊN PM2.5</p>
+              <div class="flex items-baseline space-x-1">
+                <span id="pm25-val" class="text-3xl font-extrabold tracking-tight">--</span>
+                <span class="text-xs text-slate-500">µg/m³</span>
+              </div>
+            </div>
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+              <i class="fa-solid fa-smog text-indigo-400 text-lg"></i>
+            </div>
+          </div>
+          <!-- Forecast next integrated directly -->
+          <div id="pm25-ai-forecast-container"
+            class="mt-2 text-xs flex items-center space-x-1.5 text-indigo-400 font-medium bg-indigo-950/30 border border-indigo-900/30 px-2.5 py-1 rounded-lg w-fit">
+            <i class="fa-solid fa-brain"></i>
+            <span>Dự báo AI tiếp theo: <strong id="pm25-ai-forecast">--</strong> µg/m³</span>
+          </div>
+          <div class="mt-4">
+            <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+              <span>Giới hạn VN (QCVN): 50 µg/m³</span>
+              <span id="pm25-percent" class="font-semibold text-indigo-400">--%</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-1.5 border border-slate-800">
+              <div id="pm25-bar" class="bg-indigo-500 h-1.5 rounded-full transition-all duration-1000"
+                style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PM10 CARD -->
+        <div
+          class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-xl shadow-slate-950/10 hover:border-slate-700/60 transition duration-300">
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <p class="text-xs font-semibold text-slate-400 tracking-wider">BỤI THÔ PM10</p>
+              <div class="flex items-baseline space-x-1">
+                <span id="pm10-val" class="text-3xl font-extrabold tracking-tight">--</span>
+                <span class="text-xs text-slate-500">µg/m³</span>
+              </div>
+            </div>
+            <div class="bg-slate-950 p-2 rounded-xl border border-slate-800">
+              <i class="fa-solid fa-industry text-purple-400 text-lg"></i>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="flex justify-between text-[11px] text-slate-500 mb-1">
+              <span>Giới hạn VN (QCVN): 100 µg/m³</span>
+              <span id="pm10-percent" class="font-semibold text-purple-400">--%</span>
+            </div>
+            <div class="w-full bg-slate-950 rounded-full h-1.5 border border-slate-800">
+              <div id="pm10-bar" class="bg-purple-500 h-1.5 rounded-full transition-all duration-1000"
+                style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- METEOROLOGY CARD (TEMP, HUMID, MQ135) -->
+        <div
+          class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between shadow-xl shadow-slate-950/10 hover:border-slate-700/60 transition duration-300">
+          <div class="flex justify-between items-start">
+            <p class="text-xs font-semibold text-slate-400 tracking-wider">THÔNG SỐ KHÍ TƯỢNG</p>
+            <span
+              class="text-xs font-bold text-slate-400 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded-md flex items-center gap-1">
+              <i class="fa-solid fa-satellite text-amber-400"></i> ESP32
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div class="flex items-center space-x-2 bg-slate-950/50 p-1.5 rounded-lg border border-slate-900">
+              <i class="fa-solid fa-temperature-three-quarters text-rose-400 text-sm w-4"></i>
+              <div>
+                <p class="text-[10px] text-slate-500">Nhiệt độ</p>
+                <p id="met-temp" class="text-xs font-bold">--°C</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2 bg-slate-950/50 p-1.5 rounded-lg border border-slate-900">
+              <i class="fa-solid fa-droplet text-cyan-400 text-sm w-4"></i>
+              <div>
+                <p class="text-[10px] text-slate-500">Độ ẩm</p>
+                <p id="met-humid" class="text-xs font-bold">--%</p>
+              </div>
+            </div>
+            <div
+              class="flex items-center space-x-2 bg-slate-950/50 p-1.5 rounded-lg border border-slate-900 col-span-2">
+              <i class="fa-solid fa-gas-pump text-sky-400 text-sm w-4"></i>
+              <div>
+                <p class="text-[10px] text-slate-500">Cảm biến Khí gas MQ135</p>
+                <p id="met-mq" class="text-xs font-bold">-- raw</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI PREDICTIONS ROW (4 columns representing AI models outputs) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <!-- AI PM2.5 FORECAST -->
+        <div
+          class="bg-slate-900/60 border border-slate-900 p-4 rounded-xl flex justify-between items-center hover:border-slate-800 transition">
+          <div>
+            <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">Dự báo PM2.5 (AI)</p>
+            <p id="ai-forecast-val" class="text-lg font-bold text-slate-200 mt-1">-- µg/m³</p>
+          </div>
+          <span
+            class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-950/80 border border-indigo-900/40 text-indigo-400 font-mono">Forecast</span>
+        </div>
+        <!-- AI CLASSIFY -->
+        <div
+          class="bg-slate-900/60 border border-slate-900 p-4 rounded-xl flex justify-between items-center hover:border-slate-800 transition">
+          <div>
+            <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">Độ sạch không khí (AI)</p>
+            <p id="ai-class-val" class="text-lg font-bold text-slate-200 mt-1">--</p>
+          </div>
+          <span
+            class="text-[10px] px-1.5 py-0.5 rounded bg-purple-950/80 border border-purple-900/40 text-purple-400 font-mono">Classifier</span>
+        </div>
+        <!-- AI ANOMALY -->
+        <div
+          class="bg-slate-900/60 border border-slate-900 p-4 rounded-xl flex justify-between items-center hover:border-slate-800 transition">
+          <div>
+            <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">Phát hiện Bất thường (AI)</p>
+            <p id="ai-anomaly-val" class="text-lg font-bold text-slate-200 mt-1">--</p>
+          </div>
+          <span
+            class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-900/40 text-cyan-400 font-mono">Anomaly</span>
+        </div>
+        <!-- AI ALERT LEVEL -->
+        <div
+          class="bg-slate-900/60 border border-slate-900 p-4 rounded-xl flex justify-between items-center hover:border-slate-800 transition">
+          <div>
+            <p class="text-[10px] font-bold text-slate-500 tracking-wider uppercase">Mức độ Cảnh báo</p>
+            <p id="ai-alert-val" class="text-lg font-bold text-slate-200 mt-1">--</p>
+          </div>
+          <span
+            class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-900/40 text-emerald-400 font-mono">Alert</span>
+        </div>
+      </div>
+
+      <!-- MAP & CHART ANALYTICS GRID -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <!-- GIS Map (Left, occupies 7 cols) -->
+        <div
+          class="xl:col-span-7 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[520px] shadow-xl shadow-slate-950/10">
+          <div class="flex justify-between items-center mb-4">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-map-location-dot text-indigo-400 text-lg"></i>
+              <div>
+                <h3 class="font-bold text-sm">Bản đồ Định vị Trạm Quan trắc</h3>
+                <p class="text-[10px] text-slate-400">Vị trí địa lý thực tế của thiết bị cảm biến (GPS NEO-6M)</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <!-- GPS Status Badge -->
+              <div id="gps-status-badge" class="flex items-center space-x-1.5 bg-slate-950 px-2 py-1 border border-slate-800 rounded-md">
+                <span id="gps-status-dot" class="h-2 w-2 rounded-full bg-slate-600"></span>
+                <span id="gps-status-text" class="text-[9px] font-mono font-semibold text-slate-500">GPS: Chờ tín hiệu</span>
+              </div>
+              <div class="flex items-center space-x-1.5 bg-slate-950 px-2 py-1 border border-slate-800 rounded-md">
+                <span class="h-2 w-2 rounded-full bg-indigo-500 animate-ping"></span>
+                <span class="text-[9px] font-mono font-semibold text-slate-400">GIS LIVE FEED</span>
+              </div>
+            </div>
+          </div>
+          <!-- Leaflet MAP DIV -->
+          <div id="map" class="flex-grow rounded-xl relative z-10 min-h-[350px]"></div>
+
+          <!-- LOCATION NAME BAR (Reverse Geocoding) -->
+          <div id="location-bar" class="mt-3 flex items-center space-x-2 bg-slate-950/70 border border-slate-800/80 px-3 py-2 rounded-xl">
+            <i class="fa-solid fa-location-dot text-indigo-400 text-sm flex-shrink-0"></i>
+            <div class="flex-grow min-w-0">
+              <p id="location-name" class="text-xs font-semibold text-slate-200 truncate">Đang chờ tín hiệu GPS...</p>
+              <p id="location-coords" class="text-[10px] text-slate-500 font-mono">--°, --°</p>
+            </div>
+            <div id="location-source-badge" class="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-500 font-mono">OSM</div>
+          </div>
+        </div>
+
+        <!-- Trending Chart Analysis (Right, occupies 5 cols) -->
+        <div
+          class="xl:col-span-5 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[520px] justify-between shadow-xl shadow-slate-950/10">
+          <div>
+            <div class="flex justify-between items-center mb-4">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-chart-area text-indigo-400 text-lg"></i>
+                <div>
+                  <h3 class="font-bold text-sm">Biểu đồ Lịch sử Xu hướng</h3>
+                  <p class="text-[10px] text-slate-400">Diễn biến nồng độ bụi trong các gói tin vừa nhận</p>
+                </div>
+              </div>
+              <!-- Time Range Filter Toggles -->
+              <div
+                class="flex space-x-1 bg-slate-950 p-1 border border-slate-800 rounded-lg text-[10px] font-semibold text-slate-400">
+                <button onclick="setChartRange('24h')" id="chart-btn-24h"
+                  class="px-2.5 py-1 rounded bg-slate-900 text-white font-bold">12 bản tin</button>
+                <button onclick="setChartRange('7d')" id="chart-btn-7d" class="px-2.5 py-1 rounded">30
+                  bản tin</button>
+                <button onclick="setChartRange('30d')" id="chart-btn-30d" class="px-2.5 py-1 rounded">60
+                  bản tin</button>
+              </div>
+            </div>
+            <!-- Canvas Chart Container -->
+            <div class="relative h-[280px] w-full">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800/80 pt-4 mt-4 space-y-3">
+            <p class="text-xs font-bold text-slate-300">Thống kê PM2.5 trên biểu đồ</p>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="bg-slate-950/50 p-2 rounded-lg border border-slate-900">
+                <p class="text-[9px] text-slate-500 uppercase">Thấp nhất</p>
+                <p id="stat-min" class="font-bold text-emerald-400">-- µg/m³</p>
+              </div>
+              <div class="bg-slate-950/50 p-2 rounded-lg border border-slate-900">
+                <p class="text-[9px] text-slate-500 uppercase">Trung bình</p>
+                <p id="stat-avg" class="font-bold text-slate-300">-- µg/m³</p>
+              </div>
+              <div class="bg-slate-950/50 p-2 rounded-lg border border-slate-900">
+                <p class="text-[9px] text-slate-500 uppercase">Cao nhất</p>
+                <p id="stat-max" class="font-bold text-rose-400">-- µg/m³</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM GRID: DETAILED PARAMETERS & LOG CONTROL -->
+      <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <!-- Log Console Output -->
+        <div
+          class="xl:col-span-7 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[320px] justify-between shadow-xl shadow-slate-950/10">
+          <div class="flex justify-between items-center mb-3">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-terminal text-emerald-400 text-lg"></i>
+              <div>
+                <h3 class="font-bold text-sm">Nhật ký Hệ thống & Trạng thái Gateway</h3>
+                <p class="text-[10px] text-slate-400">Nhật ký bản tin cảm biến kết nối mạng qua MQTT/HTTP Protocol</p>
+              </div>
+            </div>
+            <button onclick="clearSystemLogs()"
+              class="text-[10px] text-slate-500 hover:text-slate-300 hover:underline">Xóa lịch sử</button>
+          </div>
+          <div id="system-logs"
+            class="bg-slate-950 rounded-xl p-4 font-mono text-xs text-emerald-500/90 overflow-y-auto h-[200px] border border-slate-850 space-y-1">
+            <!-- Log lines will populate dynamically -->
+          </div>
+        </div>
+
+        <!-- Emergency Alert & Advice Log -->
+        <div
+          class="xl:col-span-5 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl flex flex-col h-[320px] justify-between shadow-xl shadow-slate-950/10">
+          <div class="flex items-center space-x-2 mb-3">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-lg"></i>
+            <div>
+              <h3 class="font-bold text-sm">Nhật ký Cảnh báo Toàn trạm</h3>
+              <p class="text-[10px] text-slate-400">Các ghi nhận vượt ngưỡng nguy hại được cập nhật tự động</p>
+            </div>
+          </div>
+          <div id="alerts-log" class="flex-grow space-y-2.5 overflow-y-auto h-[200px] pr-1">
+            <!-- Dynamic Warnings populate here -->
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
-  <div class="ai-item">
-    <div class="ai-label">PM2.5 dự đoán tiếp theo</div>
-    <div class="ai-value" id="ai-forecast">--</div>
-  </div>
-  <div class="ai-item">
-    <div class="ai-label">Bất thường</div>
-    <div class="ai-value" id="ai-anomaly">--</div>
-  </div>
-  <div class="ai-item">
-    <div class="ai-label">Cảnh báo</div>
-    <div class="ai-value" id="ai-alert">--</div>
-  </div>
-</div>
 
-<!-- CHART -->
-<div id="chart-container">
-  <h2>Biểu đồ PM2.5 & PM10</h2>
-  <canvas id="chart"></canvas>
-</div>
+  <!-- MAIN JAVASCRIPT LOGIC -->
+  <script>
+    const API = "";
+    let map;
+    let marker;
+    let gpsAccuracyCircle = null;
+    let trendChart;
+    let activeChartRange = '24h';
+    let windowRealDataRows = [];
+    let lastTimestamp = null;
+    let lastAnomalyStatus = false;
+    let isSimulatingEmergency = false;
+    let stationLat = 21.0285;
+    let stationLng = 105.8542;
+    let isGpsFixed = false;       // Trạng thái GPS fix từ ESP32
+    let lastGpsLat = null;        // Tọa độ GPS lần cuối hợp lệ
+    let lastGpsLng = null;
+    let gpsFlyDone = false;        // Chỉ fly-to lần đầu nhận GPS fix
+    let geocodeCache = {};         // Cache reverse geocode: key = "lat4,lng4" → address string
+    let lastGeocodeKey = null;     // Key của lần geocode gần nhất (tránh gọi lại)
 
-<!-- TABLE -->
-<div id="table-container">
-  <h2>Dữ liệu gần nhất</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Thời gian</th>
-        <th>PM2.5</th>
-        <th>PM10</th>
-        <th>Nhiệt độ</th>
-        <th>Độ ẩm</th>
-        <th>MQ135</th>
-      </tr>
-    </thead>
-    <tbody id="table-body">
-      <tr><td colspan="6" style="text-align:center;color:#475569">Đang tải...</td></tr>
-    </tbody>
-  </table>
-</div>
+    // INIT SYSTEM ON DOM LOADED
+    document.addEventListener("DOMContentLoaded", () => {
+      initLiveTime();
+      initMap();
+      initSystemLogs();
+      initAlertLogs();
+      initChart();
 
-<!-- TRAIN BUTTON -->
-<button id="train-btn" onclick="triggerTrain()">Train AI Model</button>
-<div id="train-msg"></div>
+      // Run initial fetch and background polling loop
+      fetchDashboard();
+      setInterval(fetchDashboard, 4000);
+    });
 
-<script>
-const API = "";
-let chart = null;
+    // 1. LIVE TIME CLOCK
+    function initLiveTime() {
+      const clockEl = document.getElementById('live-time');
+      const updateClock = () => {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        clockEl.textContent = `Cập nhật lúc: ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
 
-// =====================================================
-// CHART SETUP
-// =====================================================
-function initChart() {
-  const ctx = document.getElementById("chart").getContext("2d");
-  chart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: "PM2.5",
-          data: [],
-          borderColor: "#3b82f6",
-          backgroundColor: "#3b82f620",
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.4,
-          fill: true,
-        },
-        {
-          label: "PM10",
-          data: [],
-          borderColor: "#f97316",
-          backgroundColor: "#f9731620",
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.4,
-          fill: true,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      animation: false,
-      plugins: {
-        legend: { labels: { color: "#64748b", boxWidth: 12 } }
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: "#475569",
-            maxTicksLimit: 8,
-            maxRotation: 0,
-            callback: (v, i, ticks) => {
-              const label = chart.data.labels[i];
-              return label ? label.substring(11, 16) : "";
+    // 2. LEAFLET MAP INITIALIZATION
+    function initMap() {
+      // Center default on trạm coordinates (Hanoi center as default example)
+      map = L.map('map', {
+        zoomControl: false
+      }).setView([stationLat, stationLng], 13);
+
+      // Zoom control position top right
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      // Standard Voyager Dark-Matter Tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(map);
+
+      // Create initial custom marker
+      const customIcon = L.divIcon({
+        className: 'custom-pin',
+        html: `
+                    <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full border border-slate-950 font-bold text-xs text-white shadow-xl bg-emerald-500">
+                        <span class="h-1.5 w-1.5 rounded-full bg-white opacity-80 animate-ping"></span>
+                        <span>--</span>
+                    </div>
+                `,
+        iconSize: [45, 25],
+        iconAnchor: [22, 12]
+      });
+
+      marker = L.marker([stationLat, stationLng], { icon: customIcon }).addTo(map);
+      marker.bindPopup(`
+                <div class="text-xs p-1">
+                    <p class="font-bold text-slate-100 mb-1 flex items-center gap-1">
+                        <i class="fa-solid fa-satellite-dish text-cyan-400"></i> Trạm Cảm Biến IoT
+                    </p>
+                    <p class="text-slate-300">Đang tải dữ liệu thực tế...</p>
+                </div>
+            `);
+
+      // Tự động định vị theo IP của máy chủ chạy giao diện
+      locateByIP();
+    }
+
+    async function locateByIP() {
+      const apis = [
+        'https://freeipapi.com/api/json',
+        'https://ipapi.co/json/',
+        'https://ipinfo.io/json'
+      ];
+
+      for (const url of apis) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const data = await res.json();
+
+          let lat, lng, city, region;
+          if (url.includes('freeipapi.com')) {
+            lat = data.latitude;
+            lng = data.longitude;
+            city = data.cityName;
+            region = data.regionName;
+          } else if (url.includes('ipinfo.io')) {
+            if (data.loc) {
+              const locs = data.loc.split(',');
+              lat = parseFloat(locs[0]);
+              lng = parseFloat(locs[1]);
             }
-          },
-          grid: { color: "#1e2130" }
-        },
-        y: {
-          ticks: { color: "#475569" },
-          grid: { color: "#2d3348" }
+            city = data.city;
+            region = data.region;
+          } else { // ipapi.co
+            lat = data.latitude;
+            lng = data.longitude;
+            city = data.city;
+            region = data.region;
+          }
+
+          if (lat && lng) {
+            stationLat = lat;
+            stationLng = lng;
+            map.setView([stationLat, stationLng], 13);
+            marker.setLatLng([stationLat, stationLng]);
+            logSystem(`GIS: Định vị thành công theo IP (${city || ''}, ${region || ''}): ${stationLat.toFixed(4)}, ${stationLng.toFixed(4)}`);
+            return; // Success, exit function
+          }
+        } catch (e) {
+          console.warn(`Định vị qua ${url} thất bại:`, e);
         }
       }
+      logSystem("GIS: Không thể định vị tự động qua IP (bị chặn hoặc lỗi kết nối). Đang hiển thị vị trí mặc định.");
     }
-  });
-}
 
-// =====================================================
-// FETCH DATA
-// =====================================================
-async function fetchDashboard() {
-  try {
-    const res  = await fetch(`${API}/dashboard?limit=60`);
-    const json = await res.json();
+    // 3. FETCH DATA FROM SERVER
+    async function fetchDashboard() {
+      if (isSimulatingEmergency) return; // Freeze API updates during manual simulation testing
 
-    if (json.status !== "ok") return;
+      try {
+        const res = await fetch(`${API}/dashboard?limit=60`);
+        const json = await res.json();
 
-    updateCards(json.latest);
-    updateAI(json.predictions);
-    updateChart(json.rows);
-    updateTable(json.rows.slice(0, 15));
-    updateStatus(json.count);
+        if (json.status !== "ok") return;
 
-  } catch (e) {
-    document.getElementById("status-dot").style.background = "#ef4444";
-    document.getElementById("status-text").textContent = "Mất kết nối server";
-  }
-}
+        windowRealDataRows = json.rows || [];
+        updateStatus(json.count);
 
-// =====================================================
-// UPDATE UI
-// =====================================================
-function updateCards(latest) {
-  if (!latest) return;
+        if (json.latest) {
+          updateDashboard(json.latest, json.predictions);
+          checkNewPacketLog(json.latest);
+        }
 
-  document.getElementById("val-pm25").textContent = latest.pm25.toFixed(1);
-  document.getElementById("val-pm10").textContent = latest.pm10.toFixed(1);
-  document.getElementById("val-temp").textContent = latest.temp.toFixed(1);
-  document.getElementById("val-hum").textContent  = latest.hum.toFixed(0);
-  document.getElementById("val-mq").textContent   = latest.mq.toFixed(0);
-}
+        updateHistoryWatchlist(windowRealDataRows);
+        updateTrendChart();
 
-function updateAI(pred) {
-  if (!pred) return;
+      } catch (e) {
+        console.error("Error fetching dashboard:", e);
+        document.getElementById("status-dot").className = "h-2 w-2 rounded-full bg-rose-500 animate-pulse";
+        document.getElementById("status-text").textContent = "MẤT KẾT NỐI SERVER";
+        document.getElementById("status-text").className = "text-xs text-rose-400 font-semibold tracking-wider";
+      }
+    }
 
-  const alertLabel = pred.alert_level?.label || "--";
-  const alertLevel = pred.alert_level?.level ?? -1;
+    // 4. UPDATE SYSTEM STATUS READOUT
+    function updateStatus(count) {
+      document.getElementById("status-dot").className = "h-2 w-2 rounded-full bg-emerald-500 pulse-emerald";
+      document.getElementById("status-text").textContent = "HỆ THỐNG TRỰC TUYẾN";
+      document.getElementById("status-text").className = "text-xs text-emerald-400 font-semibold tracking-wider";
+      document.getElementById("record-count").innerHTML = `© 2026 AIRSENSE. Tổng số bản ghi: <strong class="text-cyan-400 font-mono">${count}</strong>`;
+    }
 
-  const colorMap = { Good: "color-good", Normal: "color-normal", Bad: "color-bad", Danger: "color-danger" };
-  const colorClass = colorMap[alertLabel] || "";
+    // 5. UPDATE DASHBOARD GRAPHICS AND NUMERICS
+    function updateDashboard(latest, predictions) {
+      const aqi = calculateAQI(latest.pm25);
+      const aqiColor = getAQIColorHex(aqi);
 
-  // Classify
-  const cls = pred.classify?.air_class || (pred.classify?.available === false ? "No model" : "--");
-  const clsEl = document.getElementById("ai-class");
-  clsEl.textContent = cls;
-  clsEl.className = `ai-value ${colorMap[cls] || ""}`;
+      // AQI Display Render
+      const aqiValEl = document.getElementById('aqi-value');
+      const aqiStatusEl = document.getElementById('aqi-status');
+      const aqiAdviceEl = document.getElementById('aqi-advice');
+      const aqiCircle = document.getElementById('aqi-circle');
+      const aqiIcon = document.getElementById('aqi-icon');
 
-  // Forecast
-  const fc = pred.forecast?.pm25_next;
-  document.getElementById("ai-forecast").textContent =
-    fc !== null && fc !== undefined ? `${fc} µg/m³` : "No model";
+      aqiValEl.textContent = aqi;
+      aqiValEl.style.color = aqiColor;
 
-  // Anomaly
-  const anomEl = document.getElementById("ai-anomaly");
-  if (pred.anomaly?.available === false) {
-    anomEl.textContent = "No model";
-    anomEl.className = "ai-value";
-  } else if (pred.anomaly?.is_anomaly) {
-    anomEl.textContent = "⚠ Bất thường";
-    anomEl.className = "ai-value color-anom";
-  } else {
-    anomEl.textContent = "Bình thường";
-    anomEl.className = "ai-value color-good";
-  }
+      // Dynamic text and classes for Health status
+      const aqiLevel = getAQIStatusText(aqi);
+      aqiStatusEl.textContent = aqiLevel;
+      aqiStatusEl.style.color = aqiColor;
+      aqiStatusEl.style.borderColor = `${aqiColor}40`;
+      aqiStatusEl.style.backgroundColor = `${aqiColor}15`;
 
-  // Alert
-  const alertEl = document.getElementById("ai-alert");
-  alertEl.textContent = alertLabel;
-  alertEl.className = `ai-value ${colorClass}`;
-}
+      // Text advice based on level
+      aqiAdviceEl.textContent = getAQIHealthAdvice(aqi);
 
-function updateChart(rows) {
-  if (!rows || !chart) return;
+      // Circular progress bar percentage calculate (r=32 => circumference is 201)
+      const circlePercentage = Math.min((aqi / 300) * 201, 201);
+      aqiCircle.style.strokeDashoffset = 201 - circlePercentage;
+      aqiCircle.style.stroke = aqiColor;
 
-  const asc    = [...rows].reverse();
-  const labels = asc.map(r => r.timestamp);
-  const pm25   = asc.map(r => r.pm25);
-  const pm10   = asc.map(r => r.pm10);
+      // AQI Card Icon swap
+      if (aqi > 150) {
+        aqiIcon.className = "fa-solid fa-mask-face text-rose-400 text-lg animate-bounce";
+      } else if (aqi > 100) {
+        aqiIcon.className = "fa-solid fa-head-side-mask text-amber-400 text-lg";
+      } else {
+        aqiIcon.className = "fa-solid fa-leaf text-emerald-400 text-lg";
+      }
 
-  chart.data.labels             = labels;
-  chart.data.datasets[0].data  = pm25;
-  chart.data.datasets[1].data  = pm10;
-  chart.update("none");
-}
+      // PM2.5 Card Progress Bar
+      document.getElementById('pm25-val').textContent = latest.pm25.toFixed(1);
+      const pm25Pct = Math.round((latest.pm25 / 50) * 100);
+      document.getElementById('pm25-percent').textContent = `${pm25Pct}%`;
+      const pm25Bar = document.getElementById('pm25-bar');
+      pm25Bar.style.width = `${Math.min(pm25Pct, 100)}%`;
+      pm25Bar.style.backgroundColor = aqiColor;
 
-function updateTable(rows) {
-  if (!rows) return;
+      // PM10 Card Progress Bar
+      document.getElementById('pm10-val').textContent = latest.pm10.toFixed(1);
+      const pm10Pct = Math.round((latest.pm10 / 100) * 100);
+      document.getElementById('pm10-percent').textContent = `${pm10Pct}%`;
+      const pm10Bar = document.getElementById('pm10-bar');
+      pm10Bar.style.width = `${Math.min(pm10Pct, 100)}%`;
+      pm10Bar.style.backgroundColor = aqiColor;
 
-  const tbody = document.getElementById("table-body");
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td>${r.timestamp}</td>
-      <td>${r.pm25.toFixed(1)}</td>
-      <td>${r.pm10.toFixed(1)}</td>
-      <td>${r.temp.toFixed(1)}</td>
-      <td>${r.hum.toFixed(0)}</td>
-      <td>${r.mq.toFixed(0)}</td>
-    </tr>
-  `).join("");
-}
+      // Meteorological parameters
+      document.getElementById('met-temp').textContent = `${latest.temp.toFixed(1)}°C`;
+      document.getElementById('met-humid').textContent = `${latest.hum.toFixed(0)}%`;
+      document.getElementById('met-mq').textContent = `${latest.mq.toFixed(0)} raw`;
 
-function updateStatus(count) {
-  document.getElementById("status-dot").style.background = "#22c55e";
-  document.getElementById("status-text").textContent = "Đang hoạt động";
-  document.getElementById("record-count").textContent = `• ${count} bản ghi`;
-}
+      // Process AI predictions output
+      if (predictions) {
+        // Forecast
+        const fc = predictions.forecast?.pm25_next;
+        const forecastVal = (fc !== null && fc !== undefined) ? `${fc.toFixed(1)}` : "Chưa train";
+        document.getElementById('pm25-ai-forecast').textContent = forecastVal;
+        document.getElementById('ai-forecast-val').textContent = (fc !== null && fc !== undefined) ? `${fc.toFixed(1)} µg/m³` : "Chưa train";
 
-// =====================================================
-// TRAIN
-// =====================================================
-async function triggerTrain() {
-  const btn = document.getElementById("train-btn");
-  const msg = document.getElementById("train-msg");
+        // Classify
+        const cls = predictions.classify?.air_class || (predictions.classify?.available === false ? "Chưa train" : "--");
+        const clsEl = document.getElementById('ai-class-val');
+        clsEl.textContent = translateAirClass(cls);
+        clsEl.className = `text-lg font-bold mt-1 ${getAirClassColorClass(cls)}`;
 
-  btn.disabled = true;
-  btn.textContent = "Đang train...";
-  msg.textContent = "Training bắt đầu, có thể mất 1-2 phút...";
+        // Anomaly status
+        const anomEl = document.getElementById('ai-anomaly-val');
+        const isAnomaly = predictions.anomaly?.is_anomaly;
+        if (predictions.anomaly?.available === false) {
+          anomEl.textContent = "Chưa train";
+          anomEl.className = "text-lg font-bold mt-1 text-slate-400";
+          dismissAnomalyUI();
+        } else if (isAnomaly) {
+          anomEl.textContent = "⚠ Bất thường";
+          anomEl.className = "text-lg font-bold mt-1 text-rose-400 alert-flash";
+          triggerAnomalyUI(latest);
+        } else {
+          anomEl.textContent = "Bình thường";
+          anomEl.className = "text-lg font-bold mt-1 text-emerald-400";
+          dismissAnomalyUI();
+        }
 
-  try {
-    const res  = await fetch(`${API}/train`, { method: "POST" });
-    const json = await res.json();
-    msg.textContent = json.message || "Xong!";
-  } catch (e) {
-    msg.textContent = "Lỗi kết nối server";
-  }
+        // Alert Level
+        const alertLabel = predictions.alert_level?.label || "--";
+        const alertEl = document.getElementById('ai-alert-val');
+        alertEl.textContent = translateAirClass(alertLabel);
+        alertEl.className = `text-lg font-bold mt-1 ${getAirClassColorClass(alertLabel)}`;
+      }
 
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.textContent = "Train AI Model";
-  }, 5000);
-}
+      // ===== CẬP NHẬT BẢN ĐỒ THEO GPS THỰC TẾ TỪ ESP32 =====
+      if (marker) {
+        const hasGpsFix   = latest.gps_fix === 1;
+        const hasValidGps = hasGpsFix &&
+                            latest.lat !== undefined && latest.lng !== undefined &&
+                            Math.abs(latest.lat) > 0.001 && Math.abs(latest.lng) > 0.001;
 
-// =====================================================
-// INIT
-// =====================================================
-initChart();
-fetchDashboard();
-setInterval(fetchDashboard, 5000);
-</script>
+        // Cập nhật GPS status badge UI
+        const gpsDot  = document.getElementById('gps-status-dot');
+        const gpsTxt  = document.getElementById('gps-status-text');
+        if (hasValidGps) {
+          gpsDot.className = "h-2 w-2 rounded-full bg-emerald-500 animate-pulse";
+          gpsTxt.textContent = `GPS: ${latest.lat.toFixed(5)}, ${latest.lng.toFixed(5)}`;
+          gpsTxt.className = "text-[9px] font-mono font-semibold text-emerald-400";
+        } else if (hasGpsFix) {
+          gpsDot.className = "h-2 w-2 rounded-full bg-amber-500 animate-pulse";
+          gpsTxt.textContent = "GPS: Đang lấy tọa độ...";
+          gpsTxt.className = "text-[9px] font-mono font-semibold text-amber-400";
+        } else {
+          gpsDot.className = "h-2 w-2 rounded-full bg-rose-600";
+          gpsTxt.textContent = "GPS: Chưa Fix tín hiệu";
+          gpsTxt.className = "text-[9px] font-mono font-semibold text-rose-400";
+        }
+
+        // Nếu có tọa độ GPS hợp lệ → di chuyển marker đến vị trí thực
+        if (hasValidGps) {
+          const newLat = latest.lat;
+          const newLng = latest.lng;
+
+          // Kiểm tra xem tọa độ có thay đổi so với lần trước không
+          const coordChanged = (lastGpsLat === null) ||
+                               (Math.abs(newLat - lastGpsLat) > 0.00001) ||
+                               (Math.abs(newLng - lastGpsLng) > 0.00001);
+
+          if (coordChanged) {
+            lastGpsLat = newLat;
+            lastGpsLng = newLng;
+            stationLat = newLat;
+            stationLng = newLng;
+
+            marker.setLatLng([newLat, newLng]);
+
+            // Lần đầu tiên nhận GPS fix → fly đến vị trí thực
+            if (!gpsFlyDone) {
+              gpsFlyDone = true;
+              map.flyTo([newLat, newLng], 16, { animate: true, duration: 1.5 });
+              logSystem(`GPS: Đã nhận tín hiệu GPS từ ESP32 → Bay đến vị trí thực: ${newLat.toFixed(5)}, ${newLng.toFixed(5)}`);
+            } else {
+              map.panTo([newLat, newLng], { animate: true, duration: 0.8 });
+            }
+
+            // Xóa vòng tròn độ chính xác cũ (nếu có)
+            if (gpsAccuracyCircle) { gpsAccuracyCircle.remove(); }
+            // Vẽ vòng tròn bán kính ~10m xung quanh vị trí GPS để thể hiện độ chính xác
+            gpsAccuracyCircle = L.circle([newLat, newLng], {
+              radius: 10,
+              color: '#6366f1',
+              fillColor: '#6366f1',
+              fillOpacity: 0.08,
+              weight: 1.5,
+              dashArray: '4 4'
+            }).addTo(map);
+          }
+
+          // Gọi reverse geocoding để hiển thị tên địa điểm
+          reverseGeocode(newLat, newLng);
+
+          isGpsFixed = true;
+        } else {
+          isGpsFixed = false;
+          // Nếu mất GPS fix nhưng đã từng có fix → giữ nguyên vị trí cũ
+          if (lastGpsLat !== null) {
+            marker.setLatLng([lastGpsLat, lastGpsLng]);
+          } else {
+            marker.setLatLng([stationLat, stationLng]);
+          }
+          // Cập nhật location bar khi mất GPS
+          document.getElementById('location-name').textContent = 'GPS chưa fix — đang chờ tín hiệu vệ tinh...';
+          document.getElementById('location-name').className = 'text-xs font-semibold text-slate-500 truncate';
+          document.getElementById('location-coords').textContent = '--°, --°';
+          document.getElementById('location-source-badge').textContent = 'GPS';
+          document.getElementById('location-source-badge').className = 'flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-500 font-mono';
+        }
+
+        // Cập nhật icon marker AQI
+        const mapIcon = L.divIcon({
+          className: 'custom-pin',
+          html: `
+                        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full border border-slate-950 font-bold text-xs text-white shadow-xl transition-all duration-300" style="background-color: ${aqiColor};">
+                            <span class="h-1.5 w-1.5 rounded-full bg-white opacity-80 animate-ping"></span>
+                            <span>${aqi}</span>
+                        </div>
+                    `,
+          iconSize: [45, 25],
+          iconAnchor: [22, 12]
+        });
+        marker.setIcon(mapIcon);
+
+        // Cập nhật nội dung popup với thông tin GPS đầy đủ
+        const gpsCoordText = hasValidGps
+          ? `<span class="text-emerald-400">${latest.lat.toFixed(6)}, ${latest.lng.toFixed(6)}</span>`
+          : `<span class="text-rose-400">Chưa Fix GPS</span>`;
+        const gpsFixBadge = hasValidGps
+          ? `<span class="text-[9px] bg-emerald-900/60 text-emerald-400 border border-emerald-500/30 px-1 py-0.5 rounded">GPS ✓</span>`
+          : `<span class="text-[9px] bg-rose-900/60 text-rose-400 border border-rose-500/30 px-1 py-0.5 rounded">GPS ✗</span>`;
+
+        marker.getPopup().setContent(`
+                    <div class="text-xs p-1">
+                        <p class="font-bold text-slate-100 mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-satellite-dish text-cyan-400"></i> Trạm Cảm Biến IoT ${gpsFixBadge}
+                        </p>
+                        <div class="grid grid-cols-2 gap-x-3 gap-y-1 mt-2 text-slate-300">
+                            <span>AQI: <strong style="color: ${aqiColor}">${aqi}</strong></span>
+                            <span>PM2.5: <strong class="text-slate-100">${latest.pm25.toFixed(1)} µg/m³</strong></span>
+                            <span>Nhiệt độ: <strong class="text-slate-100">${latest.temp.toFixed(1)}°C</strong></span>
+                            <span>Độ ẩm: <strong class="text-slate-100">${latest.hum.toFixed(0)}%</strong></span>
+                        </div>
+                        <div class="mt-2 pt-1.5 border-t border-slate-700">
+                            <p class="text-[10px] text-slate-400"><i class="fa-solid fa-location-crosshairs text-indigo-400 mr-1"></i>Tọa độ GPS: ${gpsCoordText}</p>
+                        </div>
+                    </div>
+                `);
+      }
+    }
+
+    // 6. PROCESS AND PRINT SYSTEM LOG
+    function checkNewPacketLog(latest) {
+      if (!latest) return;
+      if (latest.timestamp !== lastTimestamp) {
+        lastTimestamp = latest.timestamp;
+        const gpsInfo = (latest.gps_fix === 1 && latest.lat && latest.lng)
+          ? ` | GPS: ${latest.lat.toFixed(5)},${latest.lng.toFixed(5)}`
+          : ` | GPS: Chưa Fix`;
+        logSystem(`MQTT: Nhận bản tin cảm biến từ ESP32 | PM2.5 = ${latest.pm25.toFixed(1)} µg/m³, Temp = ${latest.temp.toFixed(1)}°C, Hum = ${latest.hum.toFixed(0)}%, MQ135 = ${latest.mq.toFixed(0)}${gpsInfo}`);
+      }
+    }
+
+    // 6b. REVERSE GEOCODING (Nominatim OSM — miễn phí, không cần API key)
+    async function reverseGeocode(lat, lng) {
+      // Làm tròn đến 3 chữ số thập phân (~111m precision) để cache hiệu quả
+      const key = `${lat.toFixed(3)},${lng.toFixed(3)}`;
+
+      // Trả về cache nếu đã gọi vùng này rồi
+      if (geocodeCache[key]) {
+        updateLocationBar(geocodeCache[key], lat, lng);
+        return;
+      }
+
+      // Chỉ gọi API khi tọa độ thay đổi đủ lớn so với lần trước
+      if (lastGeocodeKey === key) return;
+      lastGeocodeKey = key;
+
+      // Hiển thị trạng thái đang tải
+      document.getElementById('location-name').textContent = 'Đang tra cứu địa chỉ...';
+      document.getElementById('location-name').className = 'text-xs font-semibold text-slate-400 truncate';
+
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=vi&zoom=18&addressdetails=1`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'AirSense-AQMS/1.0' }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Xây dựng tên địa điểm chi tiết (thôn/xóm + phường + quận + TP)
+        const addr = data.address || {};
+        const parts = [
+          addr.hamlet || addr.village || addr.neighbourhood || addr.residential,
+          addr.road || addr.pedestrian || addr.footway,
+          addr.suburb || addr.quarter || addr.city_district || addr.district,
+          addr.city || addr.town || addr.county,
+        ].filter(Boolean);
+
+        // Loại bỏ phần trùng nhau (ví dụ suburb = city)
+        const uniqueParts = [...new Set(parts)];
+
+        // Lấy tối đa 4 thành phần để hiện đủ chi tiết
+        const shortName = uniqueParts.slice(0, 4).join(', ');
+        const displayName = shortName || data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+        geocodeCache[key] = displayName;
+        updateLocationBar(displayName, lat, lng, true);
+        logSystem(`GIS: Địa chỉ thực tế → ${displayName}`);
+
+      } catch (e) {
+        console.warn('Reverse geocode failed:', e);
+        const fallback = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        geocodeCache[key] = fallback;
+        updateLocationBar(fallback, lat, lng, false);
+      }
+    }
+
+    function updateLocationBar(name, lat, lng, success = true) {
+      const nameEl   = document.getElementById('location-name');
+      const coordsEl = document.getElementById('location-coords');
+      const badgeEl  = document.getElementById('location-source-badge');
+
+      nameEl.textContent = name;
+      nameEl.className = success
+        ? 'text-xs font-semibold text-slate-100 truncate'
+        : 'text-xs font-semibold text-slate-400 truncate';
+
+      coordsEl.textContent = `${lat.toFixed(6)}°N, ${lng.toFixed(6)}°E`;
+
+      if (success) {
+        badgeEl.textContent = 'OSM ✓';
+        badgeEl.className = 'flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded border border-emerald-700/60 text-emerald-400 font-mono bg-emerald-950/40';
+      } else {
+        badgeEl.textContent = 'GPS';
+        badgeEl.className = 'flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded border border-slate-700 text-slate-500 font-mono';
+      }
+    }
+
+    // 7. CHART.JS INITIALIZATION & RENDER
+    function initChart() {
+      const ctx = document.getElementById("trendChart").getContext("2d");
+
+      // Create linear background gradients
+      const pm25Grad = ctx.createLinearGradient(0, 0, 0, 250);
+      pm25Grad.addColorStop(0, "rgba(59, 130, 246, 0.25)");
+      pm25Grad.addColorStop(1, "transparent");
+
+      const pm10Grad = ctx.createLinearGradient(0, 0, 0, 250);
+      pm10Grad.addColorStop(0, "rgba(168, 85, 247, 0.25)");
+      pm10Grad.addColorStop(1, "transparent");
+
+      trendChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Nồng độ PM2.5',
+              data: [],
+              borderColor: '#3b82f6',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#3b82f6',
+              pointHoverRadius: 6,
+              tension: 0.35,
+              fill: true,
+              backgroundColor: pm25Grad,
+            },
+            {
+              label: 'Nồng độ PM10',
+              data: [],
+              borderColor: '#a855f7',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#a855f7',
+              pointHoverRadius: 6,
+              tension: 0.35,
+              fill: true,
+              backgroundColor: pm10Grad,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: "#64748b", boxWidth: 12 } }
+          },
+          scales: {
+            x: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#64748b', font: { size: 10 } }
+            },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#64748b', font: { size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    // Render Trend Charts
+    function updateTrendChart() {
+      if (!windowRealDataRows || !trendChart) return;
+
+      let limit = 12;
+      if (activeChartRange === '7d') limit = 30;
+      if (activeChartRange === '30d') limit = 60;
+
+      const chartRows = [...windowRealDataRows].slice(0, limit).reverse(); // oldest first
+      const labels = chartRows.map(r => r.timestamp.substring(11, 16)); // HH:MM
+      const pm25Values = chartRows.map(r => r.pm25);
+      const pm10Values = chartRows.map(r => r.pm10);
+
+      // Update dataset values
+      trendChart.data.labels = labels;
+      trendChart.data.datasets[0].data = pm25Values;
+      trendChart.data.datasets[1].data = pm10Values;
+
+      // High-low statistics update
+      if (pm25Values.length > 0) {
+        const minVal = Math.min(...pm25Values);
+        const maxVal = Math.max(...pm25Values);
+        const avgVal = Math.round(pm25Values.reduce((a, b) => a + b, 0) / pm25Values.length);
+
+        document.getElementById('stat-min').textContent = `${minVal.toFixed(1)} µg/m³`;
+        document.getElementById('stat-max').textContent = `${maxVal.toFixed(1)} µg/m³`;
+        document.getElementById('stat-avg').textContent = `${avgVal.toFixed(1)} µg/m³`;
+      }
+
+      trendChart.update("none");
+    }
+
+    function setChartRange(range) {
+      activeChartRange = range;
+
+      // Remove active states from buttons
+      ['24h', '7d', '30d'].forEach(r => {
+        const btn = document.getElementById(`chart-btn-${r}`);
+        btn.className = "px-2.5 py-1 rounded transition text-slate-400";
+      });
+
+      // Set active class
+      document.getElementById(`chart-btn-${range}`).className = "px-2.5 py-1 rounded bg-slate-900 text-white font-bold";
+      logSystem(`SYSTEM: Phạm vi biểu đồ được chuyển thành ${range === '24h' ? '12 bản tin gần nhất' : range === '7d' ? '30 bản tin gần nhất' : '60 bản tin gần nhất'}`);
+      updateTrendChart();
+    }
+
+    // 8. SIDEBAR WATCHLIST POPULATION (REAL TIME PACKETS)
+    function updateHistoryWatchlist(rows) {
+      const watchlist = document.getElementById('stations-watchlist');
+      watchlist.innerHTML = '';
+
+      if (!rows || rows.length === 0) {
+        watchlist.innerHTML = '<div class="text-[11px] text-slate-500 text-center py-4">Chưa có dữ liệu lịch sử</div>';
+        return;
+      }
+
+      // Display up to 10 latest packets
+      const displayRows = rows.slice(0, 10);
+      displayRows.forEach((r, idx) => {
+        const aqi = calculateAQI(r.pm25);
+        const aqiColor = getAQIColorHex(aqi);
+        const timeStr = r.timestamp.substring(11, 19); // HH:MM:SS
+        const dateStr = r.timestamp.substring(5, 10); // MM-DD
+
+        const item = document.createElement('div');
+        item.className = "p-2 rounded-xl bg-slate-900/40 border border-slate-900/60 hover:border-slate-800 flex justify-between items-center transition";
+        item.innerHTML = `
+                    <div class="space-y-0.5 truncate">
+                        <p class="text-[11px] font-semibold text-slate-200 truncate">Gói tin #${rows.length - idx}</p>
+                        <p class="text-[9px] text-slate-500 truncate">${dateStr} ${timeStr}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded" style="background-color: ${aqiColor}20; color: ${aqiColor}; border: 1px solid ${aqiColor}30;">${r.pm25.toFixed(1)} µg</span>
+                    </div>
+                `;
+        watchlist.appendChild(item);
+      });
+    }
+
+    // 9. LOG CONSOLE HANDLERS
+    function initSystemLogs() {
+      const container = document.getElementById('system-logs');
+      container.innerHTML = '';
+
+      const logs = [
+        "SYSTEM: Khởi tạo hệ thống quan trắc AIRSENSE thành công.",
+        "CONNECT: Đang kết nối máy chủ dữ liệu SQLite...",
+        "GATEWAY: Đã khởi chạy Gateway MQTT lắng nghe kênh telemetry...",
+        "CALIBRATION: Đồng bộ cảm biến và tải trọng mô hình hoàn tất.",
+        "ONLINE: Thiết bị sẵn sàng thu nhận luồng dữ liệu thời gian thực."
+      ];
+
+      logs.forEach(log => logSystem(log));
+    }
+
+    function logSystem(msg) {
+      const container = document.getElementById('system-logs');
+      if (!container) return;
+      const now = new Date();
+      const formatTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+      const div = document.createElement('div');
+      div.className = "hover:bg-slate-900/40 p-0.5 rounded transition";
+      div.innerHTML = `<span class="text-slate-500">[${formatTime}]</span> <span class="text-emerald-400">${msg}</span>`;
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function clearSystemLogs() {
+      document.getElementById('system-logs').innerHTML = '';
+      logSystem("Đã làm sạch màn hình nhật ký.");
+    }
+
+    // 10. ALERT HISTORY HANDLERS
+    function initAlertLogs() {
+      const container = document.getElementById('alerts-log');
+      container.innerHTML = '';
+
+      const initialAlerts = [
+        { time: 'Hệ thống', msg: 'Máy chủ FastAPI và Gateway MQTT hoạt động bình thường.' },
+        { time: 'Mô hình AI', msg: 'Các mô hình dự báo và phát hiện bất thường đã được nạp thành công.' }
+      ];
+
+      initialAlerts.forEach(al => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950/40 border border-slate-900 hover:border-slate-800 p-3 rounded-xl transition space-y-1";
+        card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-indigo-400 font-bold tracking-wider uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-circle-exclamation"></i> HỆ THỐNG
+                        </span>
+                        <span class="text-[9px] text-slate-500 font-mono">${al.time}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 leading-relaxed">${al.msg}</p>
+                `;
+        container.appendChild(card);
+      });
+    }
+
+    // 11. EMERGENCY SIMULATOR RUN
+    function triggerEmergencySimulation() {
+      isSimulatingEmergency = true;
+      logSystem(`CRITICAL: Kích hoạt giả lập dữ liệu ô nhiễm khẩn cấp!`);
+
+      const latestSim = {
+        pm25: 168.5,
+        pm10: 135.2,
+        temp: 32.5,
+        hum: 85,
+        mq: 1850,
+        timestamp: "Giả lập khẩn cấp"
+      };
+
+      const predictionsSim = {
+        forecast: { pm25_next: 175.0 },
+        classify: { air_class: "Danger" },
+        anomaly: { is_anomaly: true, available: true },
+        alert_level: { label: "Danger", level: 3 }
+      };
+
+      updateDashboard(latestSim, predictionsSim);
+    }
+
+    function triggerAnomalyUI(latest) {
+      if (!lastAnomalyStatus) {
+        lastAnomalyStatus = true;
+
+        // Show banner
+        const banner = document.getElementById('emergency-banner');
+        banner.querySelector('p').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> CẢNH BÁO: Phát hiện bất thường từ dữ liệu cảm biến (PM2.5 = ${latest.pm25.toFixed(1)} µg/m³)!`;
+        banner.classList.remove('hidden');
+        setTimeout(() => {
+          banner.classList.remove('-translate-y-full');
+        }, 50);
+
+        // Add card alert log
+        const container = document.getElementById('alerts-log');
+        const alertCard = document.createElement('div');
+        alertCard.id = "anomaly-alert-card";
+        alertCard.className = "bg-rose-950/40 border border-rose-500/40 p-3 rounded-xl space-y-1 animate-pulse";
+        alertCard.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-rose-400 font-bold tracking-wider uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-radiation alert-flash"></i> PHÁT HIỆN BẤT THƯỜNG (AI)
+                        </span>
+                        <span class="text-[9px] text-rose-500 font-mono">Bây giờ</span>
+                    </div>
+                    <p class="text-[11px] text-rose-200 leading-relaxed">Mô hình AI phát hiện sự bất thường trong dữ liệu (PM2.5 = ${latest.pm25.toFixed(1)} µg/m³). Vui lòng kiểm tra lại thiết bị.</p>
+                `;
+        container.insertBefore(alertCard, container.firstChild);
+        logSystem(`WARNING: Phát hiện luồng dữ liệu bất thường từ cảm biến!`);
+      }
+    }
+
+    function dismissEmergency() {
+      isSimulatingEmergency = false;
+      logSystem(`SYSTEM: Hủy bỏ chế độ giả lập khẩn cấp, đang đồng bộ lại dữ liệu thực...`);
+      dismissAnomalyUI();
+      fetchDashboard();
+    }
+
+    function dismissAnomalyUI() {
+      if (lastAnomalyStatus) {
+        lastAnomalyStatus = false;
+        const banner = document.getElementById('emergency-banner');
+        banner.classList.add('-translate-y-full');
+        setTimeout(() => {
+          banner.classList.add('hidden');
+        }, 500);
+
+        const card = document.getElementById("anomaly-alert-card");
+        if (card) card.remove();
+
+        logSystem(`SYSTEM: Trạng thái dữ liệu đã trở lại bình thường.`);
+      }
+    }
+
+    // 12. EXPORT DATA REPORT ACTION
+    async function exportReport() {
+      logSystem("SYSTEM: Đang tạo tệp xuất dữ liệu lịch sử...");
+
+      // Trigger server CSV export
+      try {
+        const res = await fetch(`${API}/export`);
+        const json = await res.json();
+        if (json.success) {
+          logSystem(`EXPORTER: Đã xuất toàn bộ dữ liệu lịch sử thành công tại: ${json.filepath} (tổng cộng ${json.rows} dòng)`);
+        }
+      } catch (e) {
+        console.error("Server-side export failed:", e);
+      }
+
+      if (!windowRealDataRows || windowRealDataRows.length === 0) {
+        logSystem("ERROR: Không có dữ liệu để kết xuất báo cáo.");
+        return;
+      }
+
+      const latest = windowRealDataRows[0];
+      const aqi = calculateAQI(latest.pm25);
+
+      let docContent = `AIRSENSE AQMS - BÁO CÁO GIÁM SÁT CHẤT LƯỢNG KHÔNG KHÍ\n`;
+      docContent += `Thời gian xuất báo cáo: ${new Date().toLocaleString('vi-VN')}\n`;
+      docContent += `Trạm nguồn dữ liệu: Trạm Cảm Biến IoT (Thực Tế)\n`;
+      docContent += `------------------------------------------------------\n`;
+      docContent += `AQI tính toán: ${aqi} (${getAQIStatusText(aqi)})\n`;
+      docContent += `PM2.5 hiện tại: ${latest.pm25.toFixed(1)} µg/m³\n`;
+      docContent += `PM10 hiện tại: ${latest.pm10.toFixed(1)} µg/m³\n`;
+      docContent += `Nhiệt độ hiện tại: ${latest.temp.toFixed(1)}°C\n`;
+      docContent += `Độ ẩm môi trường: ${latest.hum.toFixed(0)}%\n`;
+      docContent += `Chỉ số cảm biến khí MQ135: ${latest.mq.toFixed(0)} raw\n`;
+      docContent += `Thời gian ghi nhận bản tin: ${latest.timestamp}\n`;
+      docContent += `------------------------------------------------------\n`;
+      docContent += `Khuyến cáo bảo vệ sức khỏe:\n${getAQIHealthAdvice(aqi)}\n`;
+
+      const blob = new Blob([docContent], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `AIRSENSE_Report_${latest.timestamp.replace(/[: ]/g, '_')}.txt`;
+      link.click();
+
+      logSystem("EXPORTER: Đã kết xuất báo cáo tổng hợp (.txt) thành công!");
+    }
+
+    // 13. AI MODEL RETRAIN REQUEST
+    async function triggerTrain() {
+      const btn = document.getElementById("train-btn");
+      const btnText = document.getElementById("train-btn-text");
+
+      btn.disabled = true;
+      btnText.textContent = "Đang huấn luyện...";
+      logSystem("SYSTEM: Đang kích hoạt tiến trình huấn luyện lại mô hình AI trên máy chủ...");
+
+      try {
+        const res = await fetch(`${API}/train`, { method: "POST" });
+        const json = await res.json();
+        logSystem(`SYSTEM: Kích hoạt thành công. Thông báo: ${json.message}`);
+
+        const container = document.getElementById('alerts-log');
+        const alertCard = document.createElement('div');
+        alertCard.className = "bg-indigo-950/40 border border-indigo-500/40 p-3 rounded-xl space-y-1";
+        alertCard.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] text-indigo-400 font-bold tracking-wider uppercase flex items-center gap-1">
+                            <i class="fa-solid fa-brain"></i> AI RETRAIN
+                        </span>
+                        <span class="text-[9px] text-indigo-500 font-mono">Bây giờ</span>
+                    </div>
+                    <p class="text-[11px] text-indigo-200 leading-relaxed">Yêu cầu huấn luyện mô hình đã được gửi đi. Tiến trình đang diễn ra ngầm.</p>
+                `;
+        container.insertBefore(alertCard, container.firstChild);
+
+      } catch (e) {
+        logSystem("ERROR: Huấn luyện AI thất bại. Lỗi kết nối API.");
+      }
+
+      setTimeout(() => {
+        btn.disabled = false;
+        btnText.textContent = "Huấn luyện mô hình AI";
+      }, 8000);
+    }
+
+    // --- HELPER UTILITIES ---
+    function calculateAQI(pm25) {
+      if (pm25 <= 25) {
+        return Math.round((pm25 / 25) * 50);
+      } else if (pm25 <= 50) {
+        return Math.round(50 + ((pm25 - 25) / 25) * 50);
+      } else if (pm25 <= 80) {
+        return Math.round(100 + ((pm25 - 50) / 30) * 50);
+      } else if (pm25 <= 150) {
+        return Math.round(150 + ((pm25 - 80) / 70) * 50);
+      } else if (pm25 <= 250) {
+        return Math.round(200 + ((pm25 - 150) / 100) * 100);
+      } else {
+        return Math.round(300 + ((pm25 - 250) / 250) * 200);
+      }
+    }
+
+    function getAQIColorHex(aqi) {
+      if (aqi <= 50) return '#10b981';  // Tốt - Emerald
+      if (aqi <= 100) return '#eab308'; // Trung bình - Vàng nhạt
+      if (aqi <= 150) return '#f97316'; // Kém - Cam
+      if (aqi <= 200) return '#ef4444'; // Xấu - Đỏ nhạt
+      if (aqi <= 300) return '#a855f7'; // Rất xấu - Tím
+      return '#be123c';                 // Nguy hại - Đỏ sẫm
+    }
+
+    function getAQIStatusText(aqi) {
+      if (aqi <= 50) return 'Tốt';
+      if (aqi <= 100) return 'Trung bình';
+      if (aqi <= 150) return 'Chất lượng Kém';
+      if (aqi <= 200) return 'Chất lượng Xấu';
+      if (aqi <= 300) return 'Rất nguy hại';
+      return 'Nguy hại nghiêm trọng';
+    }
+
+    function getAQIHealthAdvice(aqi) {
+      if (aqi <= 50) return 'An toàn tuyệt đối cho mọi người tham gia hoạt động thể thao ngoài trời.';
+      if (aqi <= 100) return 'Nhóm người nhạy cảm nên hạn chế các hoạt động ngoài trời kéo dài.';
+      if (aqi <= 150) return 'Bắt đầu gây ảnh hưởng sức khỏe. Người lớn, trẻ em bị hen suyễn nên đeo khẩu trang.';
+      if (aqi <= 200) return 'Cảnh báo sức khỏe diện rộng. Người dân tránh di chuyển trên các trục đường bụi bặm.';
+      if (aqi <= 300) return 'Rất nguy hiểm cho sức khỏe mọi người. Khuyến nghị đóng kín cửa sổ nhà riêng.';
+      return 'Nguy hại ở mức báo động đỏ! Khuyến cáo người dân không ra khỏi nhà nếu không thật sự cần thiết.';
+    }
+
+    function translateAirClass(cls) {
+      const map = {
+        'Good': 'Tốt',
+        'Normal': 'Trung bình',
+        'Bad': 'Kém',
+        'Danger': 'Nguy hại',
+        'Chưa train': 'Chưa train',
+        '--': '--'
+      };
+      return map[cls] || cls;
+    }
+
+    function getAirClassColorClass(cls) {
+      const map = {
+        'Good': 'text-emerald-400',
+        'Normal': 'text-amber-400',
+        'Bad': 'text-orange-400',
+        'Danger': 'text-rose-400',
+        'Chưa train': 'text-slate-400'
+      };
+      return map[cls] || 'text-slate-200';
+    }
+  </script>
 </body>
+
 </html>

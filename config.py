@@ -14,6 +14,13 @@ PORT        = 8000
 DEBUG       = True
 
 # =====================================================
+# STATION LOCATION (Tọa độ trạm cảm biến thực tế)
+# Mẹo: Click chuột phải trên Google Maps tại vị trí trạm để lấy tọa độ.
+# =====================================================
+STATION_LAT = 21.0285  # Thay bằng Vĩ độ chính xác của bạn
+STATION_LNG = 105.8542 # Thay bằng Kinh độ chính xác của bạn
+
+# =====================================================
 # MODEL
 # =====================================================
 SAVED_MODELS_DIR = os.path.join(BASE_DIR, "saved_models")

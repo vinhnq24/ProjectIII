@@ -30,5 +30,69 @@
         "forecast_mae": 3.79,
         "anomalies_found": 54,
         "classifier_accuracy": 0.9023
+    },
+    {
+        "timestamp": "2026-06-19 08:04:25",
+        "success": true,
+        "records_used": 928,
+        "forecast_mae": 0.24,
+        "anomalies_found": 47,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-19 08:10:10",
+        "success": true,
+        "records_used": 997,
+        "forecast_mae": 0.38,
+        "anomalies_found": 50,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-22 08:21:48",
+        "success": true,
+        "records_used": 1997,
+        "forecast_mae": 7.33,
+        "anomalies_found": 100,
+        "classifier_accuracy": 0.9749
+    },
+    {
+        "timestamp": "2026-06-22 10:42:38",
+        "success": true,
+        "records_used": 2997,
+        "forecast_mae": 0.29,
+        "anomalies_found": 150,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-22 15:15:55",
+        "success": true,
+        "records_used": 3997,
+        "forecast_mae": 1.07,
+        "anomalies_found": 200,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-22 16:42:35",
+        "success": true,
+        "records_used": 4997,
+        "forecast_mae": 0.31,
+        "anomalies_found": 249,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-22 19:11:15",
+        "success": true,
+        "records_used": 5997,
+        "forecast_mae": 0.62,
+        "anomalies_found": 300,
+        "classifier_accuracy": 0.9975
+    },
+    {
+        "timestamp": "2026-06-23 21:13:14",
+        "success": true,
+        "records_used": 6995,
+        "forecast_mae": 0.81,
+        "anomalies_found": 350,
+        "classifier_accuracy": 1.0
     }
 ]

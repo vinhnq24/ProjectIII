@@ -21,9 +21,24 @@ def init_db():
             pm10        REAL    NOT NULL,
             temp        REAL    NOT NULL,
             hum         REAL    NOT NULL,
-            mq          REAL    NOT NULL
+            mq          REAL    NOT NULL,
+            gps_fix     INTEGER NOT NULL DEFAULT 0,
+            lat         REAL    NOT NULL DEFAULT 0.0,
+            lng         REAL    NOT NULL DEFAULT 0.0
         )
     """)
+
+    # === MIGRATION: thêm cột GPS vào bảng cũ nếu chưa có ===
+    for col, definition in [
+        ("gps_fix", "INTEGER NOT NULL DEFAULT 0"),
+        ("lat",     "REAL    NOT NULL DEFAULT 0.0"),
+        ("lng",     "REAL    NOT NULL DEFAULT 0.0"),
+    ]:
+        try:
+            cursor.execute(f"ALTER TABLE sensor_data ADD COLUMN {col} {definition}")
+            print(f"[DB] Migration: đã thêm cột '{col}' vào sensor_data")
+        except Exception:
+            pass  # Cột đã tồn tại, bỏ qua
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS predictions (
@@ -51,7 +66,8 @@ def init_db():
 # =====================================================
 # INSERT
 # =====================================================
-def insert_sensor_data(pm25, pm10, temp, hum, mq):
+def insert_sensor_data(pm25, pm10, temp, hum, mq,
+                       gps_fix=0, lat=0.0, lng=0.0):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -59,9 +75,9 @@ def insert_sensor_data(pm25, pm10, temp, hum, mq):
 
     cursor.execute("""
         INSERT INTO sensor_data
-        (timestamp, pm25, pm10, temp, hum, mq)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (timestamp, pm25, pm10, temp, hum, mq))
+        (timestamp, pm25, pm10, temp, hum, mq, gps_fix, lat, lng)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (timestamp, pm25, pm10, temp, hum, mq, gps_fix, lat, lng))
 
     conn.commit()
     conn.close()

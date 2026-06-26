@@ -89,6 +89,9 @@ def on_message(client, userdata, msg):
             temp=float(payload["temp"]),
             hum=float(payload["hum"]),
             mq=float(payload["mq"]),
+            gps_fix=int(payload.get("gps_fix", 0)),
+            lat=float(payload.get("lat", 0.0)),
+            lng=float(payload.get("lng", 0.0)),
         )
 
         logger.info("MQTT data processed and saved successfully.")
