@@ -41,7 +41,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df[df["pm10"] <= 1000]
 
     # Fill NaN bằng giá trị trước đó
-    df[FEATURES] = df[FEATURES].fillna(method="ffill").fillna(method="bfill")
+    df[FEATURES] = df[FEATURES].ffill().bfill()
 
     df = df.reset_index(drop=True)
     return df

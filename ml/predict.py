@@ -227,7 +227,6 @@ def _rule_based_alert(data: dict) -> dict:
         "pm25": level_pm25(data.get("pm25", 0)),
         "pm10": level_pm10(data.get("pm10", 0)),
         "mq":   level_mq(data.get("mq", 0)),
-        "temp": level_temp(data.get("temp", 25)),
         "hum":  level_hum(data.get("hum", 50)),
     }
 

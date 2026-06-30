@@ -94,5 +94,29 @@
         "forecast_mae": 0.81,
         "anomalies_found": 350,
         "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-30 12:30:01",
+        "success": true,
+        "records_used": 7875,
+        "forecast_mae": 0.81,
+        "anomalies_found": 355,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-30 12:47:53",
+        "success": true,
+        "records_used": 7876,
+        "forecast_mae": 0.82,
+        "anomalies_found": 394,
+        "classifier_accuracy": 1.0
+    },
+    {
+        "timestamp": "2026-06-30 12:48:39",
+        "success": true,
+        "records_used": 7878,
+        "forecast_mae": 0.92,
+        "anomalies_found": 394,
+        "classifier_accuracy": 0.9994
     }
 ]

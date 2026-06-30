@@ -6,21 +6,22 @@
 #include <Adafruit_SSD1306.h>
 #include <DHT.h>
 #include <TinyGPS++.h>
+#include "secrets.h"
 
 // =====================================================
 // WIFI
 // =====================================================
-const char* ssid     = "Quang Vinh";
-const char* password = "vinh010203";
+const char* ssid     = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
 
 // =====================================================
 // MQTT BROKER
 // =====================================================
-const char* MQTT_BROKER    = "22f19246dfe745fd9bbc373e63c12f9f.s1.eu.hivemq.cloud";
-const int   MQTT_PORT      = 8883;
+const char* MQTT_BROKER    = MQTT_BROKER_HOST;
+const int   MQTT_PORT      = MQTT_BROKER_PORT;
 
-const char* MQTT_USER      = "ngoquangvinh";
-const char* MQTT_PASSWORD  = "Vinh4953";
+const char* MQTT_USER      = MQTT_BROKER_USER;
+const char* MQTT_PASSWORD  = MQTT_BROKER_PASSWORD;
 
 const char* MQTT_TOPIC     = "airquality/data";
 const char* MQTT_CLIENT_ID = "esp32-air-sensor";
