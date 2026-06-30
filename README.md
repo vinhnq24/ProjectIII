@@ -433,7 +433,7 @@ pytest tests/test_model.py -v
 
 ## 👤 Tác giả
 
-- **Sinh viên**: Ngô Quang Vinh
+- **Sinh viên**: 
 - **Môn học**: Project 3
 - **Năm**: 2026
 
