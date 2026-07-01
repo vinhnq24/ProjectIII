@@ -118,5 +118,21 @@
         "forecast_mae": 0.92,
         "anomalies_found": 394,
         "classifier_accuracy": 0.9994
+    },
+    {
+        "timestamp": "2026-06-30 22:33:54",
+        "success": true,
+        "records_used": 7961,
+        "forecast_mae": 1.2,
+        "anomalies_found": 394,
+        "classifier_accuracy": 0.9994
+    },
+    {
+        "timestamp": "2026-06-30 22:36:17",
+        "success": true,
+        "records_used": 7990,
+        "forecast_mae": 1.18,
+        "anomalies_found": 400,
+        "classifier_accuracy": 0.9994
     }
 ]
